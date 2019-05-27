@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 
 @ApiModel(value = "Requirement", description = "A project requirement")
-public class Requirement implements Serializable {
+public class Requirement implements Serializable, Comparable<Requirement>{
 
     @ApiModelProperty(value = "ID of the requirement")
     private String id;
@@ -82,5 +82,11 @@ public class Requirement implements Serializable {
     @JsonAnySetter
     public void setUnrecognizedFields(String key, Object value) {
         this.properties.put(key, (String) value);
+    }
+
+
+    @Override
+    public int compareTo(Requirement r) {
+        return this.documentPositionOrder - r.getDocumentPositionOrder();
     }
 }

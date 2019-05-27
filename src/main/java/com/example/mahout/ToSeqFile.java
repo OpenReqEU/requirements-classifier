@@ -29,7 +29,7 @@ public class ToSeqFile {
         for (int k = 0; k < requirements.size(); ++k) {
             Requirement requirement = requirements.get(k);
 
-            String category = requirement.getRequirement_type().toString();
+            String category = requirement.getRequirement_type();
             String id = requirement.getId();
             String req = requirement.getText();
 

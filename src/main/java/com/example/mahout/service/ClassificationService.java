@@ -283,7 +283,7 @@ public class ClassificationService {
 
         /*Create the process and execute it in order to train mahout and get the results */
         ProcessBuilder pb_upload_files =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
-        ProcessBuilder pb_generate_vectors =  new ProcessBuilder("/bin/bash", "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
+        ProcessBuilder pb_generate_vectors =  new ProcessBuilder("/bin/bash", "-c", "l /" +enterpriseName+" -o /"+enterpriseName);
         ProcessBuilder pb_train =  new ProcessBuilder("/bin/bash", "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
         ProcessBuilder pb_download_model =  new ProcessBuilder("/bin/bash", "-c", "mkdir -p ./data/"+enterpriseName+" && $HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/model ./data/"+enterpriseName+"/");
         ProcessBuilder pb_download_labelindex =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
@@ -396,9 +396,9 @@ public class ClassificationService {
     }
 
     public RecommendationList classify(RequirementList request, String property, String enterpriseName) throws Exception {
-        /* Parse the body of the request */
-//        JSONObject body = new JSONObject(request);
-//        JSONArray requirements = body.getJSONArray("requirements");
+
+        Document document = new Document(request.getRequirements());
+        List<Requirement> contextualRequirements = document.getMarkedItems();
         List<Requirement> requirements = dataService.removeHeaders(dataService.preprocess(request.getRequirements()));
 
         Classifier classifier = new Classifier();
@@ -407,7 +407,19 @@ public class ClassificationService {
 
         /* Classify the requirements with the model of the company */
         ArrayList<Pair<String, Pair<String, Double>>> recomendations = classifier.classify(enterpriseName, requirements, property);
-        List<Recommendation> list = new ArrayList<>();
+//        List<Recommendation> list = new ArrayList<>();
+        HashMap<String, Recommendation> recommendationMap = new HashMap<>();
+
+        for (Requirement r : contextualRequirements) {
+            if (r.getRequirement_type().equals("Prose")) {
+                Recommendation recomendation = new Recommendation();
+                recomendation.setRequirement(r.getId());
+                recomendation.setRequirement_type("Prose");
+                recomendation.setConfidence(100.0);
+                if (!recommendationMap.containsKey(r.getId()))
+                    recommendationMap.put(r.getId(), recomendation);
+            }
+        }
 
         for(int i = 0; i < recomendations.size(); ++i) {
             Recommendation recomendation = new Recommendation();
@@ -415,19 +427,20 @@ public class ClassificationService {
             recomendation.setRequirement(element.getFirst());
             recomendation.setRequirement_type(element.getSecond().getFirst());
             recomendation.setConfidence(element.getSecond().getSecond());
-            list.add(recomendation);
+            if (!recommendationMap.containsKey(element.getFirst()))
+                recommendationMap.put(element.getFirst(), recomendation);
         }
-        for (Requirement r : request.getRequirements()) {
-            if (r.getRequirement_type()!= null && r.getRequirement_type().equals("Heading")) {
-                Recommendation recommendation = new Recommendation();
-                recommendation.setRequirement(r.getId());
-                recommendation.setRequirement_type("Prose");
-                recommendation.setConfidence(100.0);
-                list.add(recommendation);
-            }
-        }
+//        for (Requirement r : request.getRequirements()) {
+//            if (r.getRequirement_type()!= null && r.getRequirement_type().equals("Heading")) {
+//                Recommendation recommendation = new Recommendation();
+//                recommendation.setRequirement(r.getId());
+//                recommendation.setRequirement_type("Prose");
+//                recommendation.setConfidence(100.0);
+//                list.add(recommendation);
+//            }
+//        }
         RecommendationList allRecommendations = new RecommendationList();
-        allRecommendations.setRecommendations(list);
+        allRecommendations.setRecommendations(new ArrayList(recommendationMap.values()));
         return allRecommendations;
     }
 

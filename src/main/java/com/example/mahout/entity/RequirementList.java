@@ -25,6 +25,8 @@ public class RequirementList implements Serializable {
             Requirement r  = new Requirement();
             r.setId(cr.getId());
             r.setText(cr.getText());
+            r.setDocumentPositionOrder(cr.getDocumentPositionOrder());
+            r.setRequirementParent(cr.getRequirementParent());
             requirements.add(r);
         }
     }
@@ -35,6 +37,8 @@ public class RequirementList implements Serializable {
             Requirement r  = new Requirement();
             r.setId(cr.getId());
             r.setText(cr.getText());
+            r.setDocumentPositionOrder(cr.getDocumentPositionOrder());
+            r.setRequirementParent(cr.getRequirementParent());
             for (RequirementPart rp : cr.getRequirementParts()) {
                 if (rp.getId().equals(property)) r.setReqDomains(property, rp.getText());
             }
