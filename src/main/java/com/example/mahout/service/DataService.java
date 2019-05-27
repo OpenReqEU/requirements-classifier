@@ -52,7 +52,7 @@ public class DataService {
     }
 
     private List<Requirement> applyNPLProcess(List<Requirement> requirements) throws Exception {
-ls
+
         
         for (int i = 0; i < requirements.size(); ++i) {
             String text = requirements.get(i).getText();
