@@ -89,9 +89,10 @@ public class DataService {
         List<Requirement> filteredRequirements = new ArrayList<>();
         for (int i = 0; i < requirements.size(); ++i) {
             Requirement requirement = requirements.get(i);
-            String text = requirement.getText().trim();
-            if (text != null && !text.isEmpty())
+            String text = requirement.getText();
+            if (text != null && !text.trim().isEmpty()) {
                 filteredRequirements.add(requirement);
+            }
         }
         System.out.println("Input: " + requirements.size() + " requirements, " + filteredRequirements.size() + " after filtering (empty req)");
         return filteredRequirements;

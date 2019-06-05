@@ -1,15 +1,14 @@
 package com.example.mahout.entity;
 
-import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import java.io.Serializable;
 import java.util.HashMap;
-import java.util.List;
 
 @ApiModel(value = "Requirement", description = "A project requirement")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Requirement implements Serializable, Comparable<Requirement>{
 
     @ApiModelProperty(value = "ID of the requirement")
@@ -26,6 +25,15 @@ public class Requirement implements Serializable, Comparable<Requirement>{
     HashMap<String, String> properties;
 
     public Requirement() {
+        properties = new HashMap<>();
+    }
+
+    public Requirement(String id, String requirement_type, String text, Integer documentPositionOrder, String requirementParent) {
+        this.id = id;
+        this.requirement_type = requirement_type;
+        this.text = text;
+        this.documentPositionOrder = documentPositionOrder;
+        this.requirementParent = requirementParent;
         properties = new HashMap<>();
     }
 
@@ -78,12 +86,6 @@ public class Requirement implements Serializable, Comparable<Requirement>{
     public void setRequirementParent(String requirementParent) {
         this.requirementParent = requirementParent;
     }
-
-    @JsonAnySetter
-    public void setUnrecognizedFields(String key, Object value) {
-        this.properties.put(key, (String) value);
-    }
-
 
     @Override
     public int compareTo(Requirement r) {

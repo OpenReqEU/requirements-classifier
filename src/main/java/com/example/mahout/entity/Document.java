@@ -20,7 +20,7 @@ public class Document {
             } else {
                 if (!tree.containsKey(r.getRequirementParent()))
                     tree.put(r.getRequirementParent(), new ArrayList<>());
-                tree.get(r.getRequirementParent()).add(r);
+                tree.get(r.getRequirementParent()).add(new Requirement(r.getId(), r.getRequirement_type(), r.getText(), r.getDocumentPositionOrder(), r.getRequirementParent()));
             }
         }
 
@@ -42,27 +42,7 @@ public class Document {
         this.tree = tree;
     }
 
-    public List<Requirement> getMarkedItems() {
-        List<Requirement> reqs = new ArrayList<>();
-        for (Requirement r : rootItems) {
-            List<Requirement> allChildren = iGetMarkedItems(r);
-            reqs.addAll(allChildren);
-        }
-        return reqs;
-    }
-
-    private List<Requirement> iGetMarkedItems(Requirement root) {
-        if (!tree.containsKey(root.getId()) || tree.get(root.getId()).isEmpty()) {
-            root.setRequirement_type("DEF");
-            return Collections.singletonList(root);
-        } else {
-            List<Requirement> childs = new ArrayList<>();
-            for (Requirement r : tree.get(root.getId())) {
-                childs.addAll(iGetMarkedItems(r));
-            }
-            root.setRequirement_type("Prose");
-            childs.add(root);
-            return childs;
-        }
+    public List<Requirement> getChildren(String requirement) {
+        return tree.get(requirement);
     }
 }

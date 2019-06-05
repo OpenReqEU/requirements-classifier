@@ -22,6 +22,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class ClassificationService {
@@ -283,7 +285,7 @@ public class ClassificationService {
 
         /*Create the process and execute it in order to train mahout and get the results */
         ProcessBuilder pb_upload_files =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
-        ProcessBuilder pb_generate_vectors =  new ProcessBuilder("/bin/bash", "-c", "l /" +enterpriseName+" -o /"+enterpriseName);
+        ProcessBuilder pb_generate_vectors =  new ProcessBuilder("/bin/bash", "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
         ProcessBuilder pb_train =  new ProcessBuilder("/bin/bash", "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
         ProcessBuilder pb_download_model =  new ProcessBuilder("/bin/bash", "-c", "mkdir -p ./data/"+enterpriseName+" && $HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/model ./data/"+enterpriseName+"/");
         ProcessBuilder pb_download_labelindex =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
@@ -398,7 +400,7 @@ public class ClassificationService {
     public RecommendationList classify(RequirementList request, String property, String enterpriseName) throws Exception {
 
         Document document = new Document(request.getRequirements());
-        List<Requirement> contextualRequirements = document.getMarkedItems();
+        //List<Requirement> contextualRequirements = document.getMarkedItems();
         List<Requirement> requirements = dataService.removeHeaders(dataService.preprocess(request.getRequirements()));
 
         Classifier classifier = new Classifier();
@@ -410,7 +412,7 @@ public class ClassificationService {
 //        List<Recommendation> list = new ArrayList<>();
         HashMap<String, Recommendation> recommendationMap = new HashMap<>();
 
-        for (Requirement r : contextualRequirements) {
+        /*for (Requirement r : contextualRequirements) {
             if (r.getRequirement_type().equals("Prose")) {
                 Recommendation recomendation = new Recommendation();
                 recomendation.setRequirement(r.getId());
@@ -419,7 +421,7 @@ public class ClassificationService {
                 if (!recommendationMap.containsKey(r.getId()))
                     recommendationMap.put(r.getId(), recomendation);
             }
-        }
+        }*/
 
         for(int i = 0; i < recomendations.size(); ++i) {
             Recommendation recomendation = new Recommendation();
@@ -430,6 +432,14 @@ public class ClassificationService {
             if (!recommendationMap.containsKey(element.getFirst()))
                 recommendationMap.put(element.getFirst(), recomendation);
         }
+
+        //TODO modify here all items that belong to the same list
+        for (Recommendation r : recommendationMap.values()) {
+            List<Requirement> children = document.getChildren(r.getRequirement());
+            if (children != null && !children.isEmpty())
+                markListWithMostCommonTag(children, recommendationMap, property);
+        }
+
 //        for (Requirement r : request.getRequirements()) {
 //            if (r.getRequirement_type()!= null && r.getRequirement_type().equals("Heading")) {
 //                Recommendation recommendation = new Recommendation();
@@ -442,6 +452,51 @@ public class ClassificationService {
         RecommendationList allRecommendations = new RecommendationList();
         allRecommendations.setRecommendations(new ArrayList(recommendationMap.values()));
         return allRecommendations;
+    }
+
+    private void markListWithMostCommonTag(List<Requirement> children, HashMap<String, Recommendation> recommendationMap,
+                                           String property) {
+
+        //TODO copy of original requirement to analyze if list item
+        if (!areBulletList(children)) return;
+
+        Integer positiveTag = 0;
+        Integer negativeTag = 0;
+        for (Requirement r : children) {
+            if (recommendationMap.get(r.getId()).getRequirement_type().equals(property)) ++positiveTag;
+            else ++negativeTag;
+        }
+
+        String tag;
+        if (positiveTag > negativeTag) tag = property;
+        else tag = "Prose";
+
+        for (Requirement r : children) {
+            recommendationMap.get(r.getId()).setRequirement_type(tag);
+            //recommendationMap.get(r.getId()).setConfidence(100.00);
+        }
+
+    }
+
+    private boolean areBulletList(List<Requirement> children) {
+        boolean isList = true;
+        int i = 0;
+        while (isList && i < children.size()) {
+            isList = isBulletItem(children.get(i).getText());
+            ++i;
+        }
+        return isList;
+    }
+
+    private static final String grammarExp = "^([a-z|A-Z]+|^[MDCLXVI]+$|[0-9]+)?[)|.|\\-|·]";
+
+    private static boolean isBulletItem(String text) {
+        Pattern pattern = Pattern.compile(grammarExp);
+        Matcher matcher = pattern.matcher(text);
+        while (matcher.find()) {
+            return true;
+        }
+        return false;
     }
 
     public String updateMulti(RequirementList request, String property, String enterpriseName, List<String> modelList) throws Exception {
