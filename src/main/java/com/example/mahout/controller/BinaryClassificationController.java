@@ -4,6 +4,7 @@ import com.example.mahout.entity.*;
 import com.example.mahout.entity.siemens.SiemensRequirementList;
 import com.example.mahout.service.ClassificationService;
 import com.example.mahout.service.DataService;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -79,10 +80,11 @@ public class BinaryClassificationController {
             " and a recommended label is returned for each requirement (with a level of confidence)")
     @ApiResponses( value = {@ApiResponse(code = 200, message = "OK", response = RecommendationList.class)})
     public RecommendationList classify(@ApiParam(value = "Request with the requirements to classify", required = true)@RequestBody ClassifyRequirementList request,
-                                              @ApiParam(value = "Property of the classifier (requirement_type)", required = true) @RequestParam("property") String property,
-                                              @ApiParam(value = "Proprietary company of the model", required = true) @RequestParam("company") String enterpriseName) throws Exception {
+                                       @ApiParam(value = "Property of the classifier (requirement_type)", required = true) @RequestParam("property") String property,
+                                       @ApiParam(value = "Proprietary company of the model", required = true) @RequestParam("company") String enterpriseName,
+                                       @ApiParam(value = "Apply contextual information analysis?") @RequestParam(value = "context", defaultValue = "false", required = false) Boolean context) throws Exception {
 
-        return classificationService.classify(new RequirementList(request), property, enterpriseName);
+        return classificationService.classify(new RequirementList(request), property, enterpriseName, context);
 
     }
 

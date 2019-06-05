@@ -95,12 +95,15 @@ public class MultiClassificationController {
                                        @ApiParam(value = "Company to which the model belong", required = true) @RequestParam("company") String enterpriseName,
                                        @ApiParam(value = "Property of the classifier", required = true) @RequestParam("property") String property,
                                        @ApiParam(value = "List of property values to generate models (if empty, all values are generated)")
-                                           @RequestParam(value = "Model list", required = false) List<String> modelList
+                                           @RequestParam(value = "Model list", required = false) List<String> modelList,
+                                       @ApiParam(value = "Apply contextual information analysis?")
+                                           @RequestParam(value = "context", defaultValue = "false", required = false) Boolean context
                          ) throws Exception {
         return classificationService.classifyByDomain(new RequirementList(request),
                 enterpriseName,
                 property,
-                modelList);
+                modelList,
+                context);
     }
 
     @RequestMapping(value = "train&test", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)

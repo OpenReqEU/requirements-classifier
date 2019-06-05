@@ -397,7 +397,7 @@ public class ClassificationService {
         FileUtils.deleteDirectory(new File("./data"+enterpriseName));
     }
 
-    public RecommendationList classify(RequirementList request, String property, String enterpriseName) throws Exception {
+    public RecommendationList classify(RequirementList request, String property, String enterpriseName, Boolean context) throws Exception {
 
         Document document = new Document(request.getRequirements());
         //List<Requirement> contextualRequirements = document.getMarkedItems();
@@ -434,10 +434,12 @@ public class ClassificationService {
         }
 
         //TODO modify here all items that belong to the same list
-        for (Recommendation r : recommendationMap.values()) {
-            List<Requirement> children = document.getChildren(r.getRequirement());
-            if (children != null && !children.isEmpty())
-                markListWithMostCommonTag(children, recommendationMap, property);
+        if (context) {
+            for (Recommendation r : recommendationMap.values()) {
+                List<Requirement> children = document.getChildren(r.getRequirement());
+                if (children != null && !children.isEmpty())
+                    markListWithMostCommonTag(children, recommendationMap, property);
+            }
         }
 
 //        for (Requirement r : request.getRequirements()) {
@@ -702,7 +704,7 @@ public class ClassificationService {
         System.out.println("Done");
     }
 
-    public RecommendationList classifyByDomain(RequirementList request, String enterpriseName, String property, List<String> modelList) throws Exception {
+    public RecommendationList classifyByDomain(RequirementList request, String enterpriseName, String property, List<String> modelList, Boolean context) throws Exception {
         RecommendationList globalList = new RecommendationList();
 
         CompanyModelDAO companyModelDAO = new CompanyModelDAOMySQL();
@@ -720,7 +722,7 @@ public class ClassificationService {
         }
 
         for (String model : classifyList) {
-            RecommendationList recommendationList = classify(request, model, enterpriseName);
+            RecommendationList recommendationList = classify(request, model, enterpriseName, context);
             for (Recommendation r : recommendationList.getRecommendations()) {
                 if (!r.getRequirement_type().equals("Prose")) {
                     r.setRequirement_type(r.getRequirement_type().split("#")[1]);
