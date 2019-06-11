@@ -36,3 +36,7 @@ src/main/java/com/example/mahout/testSets\.java
 src/main/java/com/example/mahout/getNumbers\.java
 src/main/java/com/example/mahout/ReadLAbelindx\.java
 mahout/mahout-examples-0\.12\.2-job\.jar
+.vscode/
+*.code-workspace
+venv/
+*.class
