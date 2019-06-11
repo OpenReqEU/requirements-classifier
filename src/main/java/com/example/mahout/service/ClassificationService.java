@@ -168,7 +168,7 @@ public class ClassificationService {
 
     }
 
-    public Stats trainAndTest(RequirementList request, int n) throws Exception {
+    public Stats trainAndTest(RequirementList request, String property, int n, Boolean context) throws Exception {
         String enterpriseName = "train_test";
 //        JSONArray reqToTest = body.getJSONArray("requirements");
 
@@ -197,15 +197,23 @@ public class ClassificationService {
         total_results.put("false_negatives", 0.0);
         total_results.put("true_negatives", 0.0);
 
+        List<Stats> partialStats = new ArrayList<>();
+
+        for (int i = 0 ; i < trainSets.size(); i++) {
+            RequirementList train = new RequirementList(trainSets.get(i));
+            RequirementList test = new RequirementList(testSets.get(i));
+            train(train, property, "train_and_test");
+            RecommendationList recommendations = classify(test, property, "train_and_test", context);
+            partialStats.add(new Stats(recommendations));
+        }
 
         /* Execute all tests one by one */
-        ArrayList<String> values_keys = new ArrayList<>();
+        /* ArrayList<String> values_keys = new ArrayList<>();
         values_keys.addAll(total_results.keySet());
         for (int i = 0; i < trainSets.size(); i++) {
             HashMap<String, Double> tmp_results = testOne(trainSets.get(i), testSets.get(i), enterpriseName, i);
             System.out.println("Done with test set number: "+i);
 
-            /* Add partial results to the total */
             for (int j = 0; j < values_keys.size(); j++) {
                 String key = values_keys.get(j);
                 double tmp_value = total_results.get(key);
@@ -224,7 +232,6 @@ public class ClassificationService {
             System.out.println("Partial results for " + (i+1) + "tests computed\n");
         }
 
-        /* Compute total results */
         for (int i = 0; i < total_results.size(); i++) {
             String key = values_keys.get(i);
             if(key.equals("true_positives") || key.equals("false_positives") || key.equals("false_negatives") || key.equals("true_negatives")) {
@@ -236,21 +243,9 @@ public class ClassificationService {
                 total_results.put(values_keys.get(i), d);
             }
         }
+        */
         System.out.println("Total results calculated");
 
-        /* create a JSONObject with the final results */
-//        JSONObject result = new JSONObject();
-//        result.put("kappa", total_results.get("kappa"));
-//        result.put("accuracy", total_results.get("accuracy"));
-//        result.put("reliability", total_results.get("reliability"));
-//        result.put("reliability_std_deviation", total_results.get("reliability_std_deviation"));
-//        result.put("weighted_precision", total_results.get("weighted_precision"));
-//        result.put("weighted_recall", total_results.get("weighted_recall"));
-//        result.put("weighted_f1_score", total_results.get("weighted_f1_score"));
-//        result.put("true_positives", total_results.get("true_positives"));
-//        result.put("false_positives", total_results.get("false_positives"));
-//        result.put("false_negatives", total_results.get("false_negatives"));
-//        result.put("true_negatives", total_results.get("true_negatives"));
         Stats result = new Stats(total_results.get("kappa"), total_results.get("accuracy"), total_results.get("reliability"),
                 total_results.get("reliability_std_deviation"), total_results.get("weighted_precision"), total_results.get("weighted_recall"),
                 total_results.get("weighted_f1_score"), total_results.get("true_positives").intValue(), total_results.get("false_positives").intValue(),
@@ -734,7 +729,7 @@ public class ClassificationService {
         return globalList;
     }
 
-    public DomainStats trainAndTestByDomain(RequirementList request, int n, String propertyKey, List<String> modelList) throws Exception {
+    public DomainStats trainAndTestByDomain(RequirementList request, int n, String propertyKey, List<String> modelList, Boolean context) throws Exception {
         HashMap<String, RequirementList> domainRequirementsMap = dataService.mapByDomain(request, propertyKey);
         DomainStats domainStats = new DomainStats();
 
@@ -745,10 +740,10 @@ public class ClassificationService {
         for (String domain : domainRequirementsMap.keySet()) {
             if (!domain.trim().isEmpty()) {
                 if (modelList == null || modelList.isEmpty()) {
-                    total = trainAndTestDomain(request, n, propertyKey, domainStats, total, domainSize, statsMap, domain);
+                    total = trainAndTestDomain(request, n, propertyKey, domainStats, total, domainSize, statsMap, domain, context);
                 }
                 else if (modelList.contains(domain)) {
-                    total = trainAndTestDomain(request, n, propertyKey, domainStats, total, domainSize, statsMap, domain);
+                    total = trainAndTestDomain(request, n, propertyKey, domainStats, total, domainSize, statsMap, domain, context);
                 }
             }
         }
@@ -781,7 +776,9 @@ public class ClassificationService {
         return domainStats;
     }
 
-    private Integer trainAndTestDomain(RequirementList request, int n, String propertyKey, DomainStats domainStats, Integer total, HashMap<String, Integer> domainSize, HashMap<String, Stats> statsMap, String domain) throws Exception {
+    private Integer trainAndTestDomain(RequirementList request, int n, String propertyKey, DomainStats domainStats, Integer total,
+                                       HashMap<String, Integer> domainSize, HashMap<String, Stats> statsMap, String domain,
+                                       Boolean context) throws Exception {
         Integer domainPartialSize = 0;
         for (Requirement r : request.getRequirements()) {
             if (r.getReqDomains(propertyKey).contains(domain)) {
@@ -794,7 +791,7 @@ public class ClassificationService {
                 r.setRequirement_type("Prose");
         }
 
-        Stats s = trainAndTest(request, n);
+        Stats s = trainAndTest(request, propertyKey, n, context);
 
         ConfusionMatrixStats confusionMatrixStats = new ConfusionMatrixStats();
         confusionMatrixStats.setTrue_positives(s.getTrue_positives());

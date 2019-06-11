@@ -117,9 +117,10 @@ public class MultiClassificationController {
                                     @ApiParam(value = "Number of tests", required = true) @RequestParam("k") int n,
                                     @ApiParam(value = "Property of the classifier", required = true) @RequestParam("property") String property,
                                     @ApiParam(value = "List of property values to generate models (if empty, all values are generated)")
-                                        @RequestParam(value = "Model list", required = false) List<String> modelList) throws Exception {
+                                        @RequestParam(value = "Model list", required = false) List<String> modelList,
+                                    @ApiParam(value = "Apply contextual information analysis?") @RequestParam(value = "context", defaultValue = "false", required = false) Boolean context) throws Exception {
         System.out.println("Starting train and test functionality");
-        return classificationService.trainAndTestByDomain(new RequirementList(request, property), n, property, modelList);
+        return classificationService.trainAndTestByDomain(new RequirementList(request, property), n, property, modelList, context);
     }
 
 }

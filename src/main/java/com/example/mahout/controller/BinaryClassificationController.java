@@ -94,12 +94,14 @@ public class BinaryClassificationController {
                     "Returns the average of several statistics like the accuracy of the model\n")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = Stats.class)})
     public Stats trainAndTest(@ApiParam(value = "Request with the requirements to test", required = true) @RequestBody RequirementList request,
-                                     @ApiParam(value = "Number of tests", required = true) @RequestParam("k") int n) throws Exception {
+                                     @ApiParam(value = "Property") @RequestParam("property") String property,
+                                     @ApiParam(value = "Number of tests", required = true) @RequestParam("k") int n,
+                              @ApiParam(value = "Apply contextual information analysis?") @RequestParam(value = "context", defaultValue = "false", required = false) Boolean context) throws Exception {
         System.out.println("Starting train and test functionality");
         /* Parse the body of the request */
 //        JSONObject body = new JSONObject(request);
 
-        Stats result = classificationService.trainAndTest(request, n);
+        Stats result = classificationService.trainAndTest(request, property, n, context);
 
         return result;
 

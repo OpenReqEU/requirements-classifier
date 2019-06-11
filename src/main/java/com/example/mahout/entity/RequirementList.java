@@ -19,6 +19,10 @@ public class RequirementList implements Serializable {
         this.requirements = new ArrayList<>();
     }
 
+    public RequirementList(List<Requirement> requirements) {
+        this.requirements = requirements;
+    }
+
     public RequirementList(ClassifyRequirementList request) {
         this.requirements = new ArrayList<>();
         for (ClassifyRequirement cr : request.getRequirements()) {
@@ -52,5 +56,12 @@ public class RequirementList implements Serializable {
 
     public void setRequirements(List<Requirement> requirements) {
         this.requirements = requirements;
+    }
+
+    public Requirement find(String id) {
+        for (Requirement r : requirements) {
+            if (r.getId().equals(id)) return r;
+        }
+        return null;
     }
 }

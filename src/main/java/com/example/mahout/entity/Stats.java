@@ -5,6 +5,7 @@ import io.swagger.annotations.ApiModelProperty;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import java.io.Serializable;
+import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @ApiModel(value = "Stats", description = "Stats results of the classifier test")
@@ -61,6 +62,39 @@ public class Stats implements Serializable {
     }
 
     public Stats() {
+
+    }
+
+    public Stats(RecommendationList recommendationList, RequirementList classifyList, String property) {
+        //confusion matrix
+        true_positives = true_negatives = false_positives = false_negatives = 0;
+        for (Recommendation r : recommendationList.getRecommendations()) {
+            //Classified as P
+            Requirement originalReq = classifyList.find(r.getRequirement());
+            if (r.getRequirement_type().equals(property)) {
+                //Original P
+                if (r.getRequirement_type().equals(originalReq.getRequirement_type())) {
+                    ++true_positives;
+                }
+                //Original N
+                else ++false_positives;
+            }
+            //Classified as N
+            else {
+                //Original N
+                if (r.getRequirement_type().equals(originalReq.getRequirement_type())) {
+                    ++true_negatives;
+                }
+                //Original P
+                else ++false_negatives;
+            }
+        }
+
+        //stats evaluation
+        accuracy = 100.00 * (true_negatives + true_positives) / recommendationList.getRecommendations().size();
+        reliability = ( true_negatives / (true_negatives + false_negatives)
+                + true_positives / (true_positives + false_positives)) * 100.00 / 2;
+        //TODO
 
     }
 
