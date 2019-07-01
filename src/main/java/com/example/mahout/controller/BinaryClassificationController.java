@@ -38,8 +38,8 @@ public class BinaryClassificationController {
                     " property and company.")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = String.class)})
     public String train(@ApiParam(value = "Request with the requirements to train the model", required = true) @RequestBody RequirementList request,
-                               @ApiParam(value = "Property of the classifier (requirement_type)", required = true) @RequestParam("property") String property,
-                               @ApiParam(value = "Proprietary company of the model", required = true) @RequestParam("company") String enterpriseName) throws Exception {
+                               @ApiParam(value = "Property of the classifier (requirement_type)", required = true, example = "requirement") @RequestParam("property") String property,
+                               @ApiParam(value = "Proprietary company of the model", required = true, example = "UPC") @RequestParam("company") String enterpriseName) throws Exception {
 
         classificationService.train(request, property, enterpriseName);
 
@@ -51,8 +51,8 @@ public class BinaryClassificationController {
             notes = "Given a list of requirements, updates the model of the classifier for the given company")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = String.class)})
     public ResponseEntity update(@ApiParam(value = "Request with the requirements to train and update the model", required = true) @RequestBody RequirementList request,
-                         @ApiParam(value = "Property of the classifier (requirement_type)", required = true) @RequestParam("property") String property,
-                         @ApiParam(value = "Proprietary company of the model", required = true) @RequestParam("company") String enterpriseName) throws Exception {
+                         @ApiParam(value = "Property of the classifier (requirement_type)", required = true, example = "requirement") @RequestParam("property") String property,
+                         @ApiParam(value = "Proprietary company of the model", required = true, example = "UPC") @RequestParam("company") String enterpriseName) throws Exception {
 
         String msg = classificationService.update(request, property, enterpriseName);
         return new ResponseEntity<>(msg, msg.equals("Update succsesfull") ? HttpStatus.OK : HttpStatus.NOT_FOUND);
@@ -79,8 +79,10 @@ public class BinaryClassificationController {
             " and a recommended label is returned for each requirement (with a level of confidence)")
     @ApiResponses( value = {@ApiResponse(code = 200, message = "OK", response = RecommendationList.class)})
     public RecommendationList classify(@ApiParam(value = "Request with the requirements to classify", required = true)@RequestBody ClassifyRequirementList request,
-                                              @ApiParam(value = "Property of the classifier (requirement_type)", required = true) @RequestParam("property") String property,
-                                              @ApiParam(value = "Proprietary company of the model", required = true) @RequestParam("company") String enterpriseName) throws Exception {
+                                              @ApiParam(value = "Property of the classifier (requirement_type)", required = true,
+                                              example = "requirement") @RequestParam("property") String property,
+                                              @ApiParam(value = "Proprietary company of the model", required = true,
+                                              example = "UPC") @RequestParam("company") String enterpriseName) throws Exception {
 
         return classificationService.classify(new RequirementList(request), property, enterpriseName);
 
@@ -92,7 +94,7 @@ public class BinaryClassificationController {
                     "Returns the average of several statistics like the accuracy of the model\n")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = Stats.class)})
     public Stats trainAndTest(@ApiParam(value = "Request with the requirements to test", required = true) @RequestBody RequirementList request,
-                                     @ApiParam(value = "Number of tests", required = true) @RequestParam("k") int n) throws Exception {
+                                     @ApiParam(value = "Number of tests", required = true, example = "10") @RequestParam("k") int n) throws Exception {
         System.out.println("Starting train and test functionality");
         /* Parse the body of the request */
 //        JSONObject body = new JSONObject(request);

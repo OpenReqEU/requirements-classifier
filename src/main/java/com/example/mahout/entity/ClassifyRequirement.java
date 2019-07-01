@@ -11,13 +11,16 @@ import java.util.List;
 @ApiModel(value = "Classify Requirement", description = "A project requirement")
 public class ClassifyRequirement implements Serializable {
 
-    @ApiModelProperty(value = "ID of the requirement")
+    @ApiModelProperty(value = "ID of the requirement", example = "REQ002")
     String id;
-    @ApiModelProperty(value = "Text with the requirement information")
+    @ApiModelProperty(value = "Text with the requirement information", example = "The system must be implemented using " +
+            "last Java version")
     String text;
-    @ApiModelProperty(value = "The position of the Requirement as ascending number when Requirements are ordered and order has relevance, such as in a document file.")
+    @ApiModelProperty(value = "The position of the Requirement as ascending number when Requirements are ordered and " +
+            "order has relevance, such as in a document file.", example = "24")
     Integer documentPositionOrder;
-    @ApiModelProperty(value = "The parent Requirement of the current Requirement for hierarchical structure in which the parent and child are tied together and cannot be understood without each other.")
+    @ApiModelProperty(value = "The parent Requirement of the current Requirement for hierarchical structure in which " +
+            "the parent and child are tied together and cannot be understood without each other.", example = "REQ001")
     String requirementParent;
 
     public String getId() {
