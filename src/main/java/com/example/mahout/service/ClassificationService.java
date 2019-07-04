@@ -230,7 +230,7 @@ public class ClassificationService {
             }
             else {
                 double d = total_results.get(values_keys.get(i));
-                d = d / n;
+                d = n > 0 ? d / n : 0;
                 total_results.put(values_keys.get(i), d);
             }
         }
