@@ -11,15 +11,18 @@ import java.util.HashMap;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Requirement implements Serializable, Comparable<Requirement>{
 
-    @ApiModelProperty(value = "ID of the requirement")
+    @ApiModelProperty(value = "ID of the requirement", example = "REQ002")
     private String id;
-    @ApiModelProperty(value = "Requirement type")
+    @ApiModelProperty(value = "Requirement type", example = "requirement")
     private String requirement_type;
-    @ApiModelProperty(value = "Text with the requirement information")
+    @ApiModelProperty(value = "Text with the requirement information", example = "The system must be implemented using" +
+            " last Java version")
     private String text;
-    @ApiModelProperty(value = "The position of the Requirement as ascending number when Requirements are ordered and order has relevance, such as in a document file.")
+    @ApiModelProperty(value = "The position of the Requirement as ascending number when Requirements are ordered and order has relevance, such as in a document file.",
+            example = "24")
     private Integer documentPositionOrder;
-    @ApiModelProperty(value = "The parent Requirement of the current Requirement for hierarchical structure in which the parent and child are tied together and cannot be understood without each other.")
+    @ApiModelProperty(value = "The parent Requirement of the current Requirement for hierarchical structure in which the " +
+            "parent and child are tied together and cannot be understood without each other.", example = "REQ001")
     private String requirementParent;
 
     HashMap<String, String> properties;

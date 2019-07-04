@@ -35,8 +35,8 @@ public class MultiClassificationController {
                     "the *property* field.")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = String.class)})
     public String test(@ApiParam(value = "Request with the requirements to train", required = true) @RequestBody MultiRequirementList request,
-                     @ApiParam(value = "Company to which the model belong", required = true) @RequestParam("company") String enterpriseName,
-                     @ApiParam(value = "Property of the classifier", required = true) @RequestParam("property") String property,
+                     @ApiParam(value = "Company to which the model belong", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
+                     @ApiParam(value = "Property of the classifier", required = true, example = "requirement") @RequestParam("property") String property,
                      @ApiParam(value = "List of property values to generate models (if empty, all values are generated)")
                          @RequestParam(value = "modelList", required = false) List<String> modelList) throws Exception {
         classificationService.trainByDomain(
@@ -75,8 +75,8 @@ public class MultiClassificationController {
                     "the *property* field.")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = String.class)})
     public void update(@ApiParam(value = "Request with the requirements to train", required = true) @RequestBody MultiRequirementList request,
-                       @ApiParam(value = "Company to which the model belong", required = true) @RequestParam("company") String enterpriseName,
-                       @ApiParam(value = "Property of the classifier", required = true) @RequestParam("property") String property,
+                       @ApiParam(value = "Company to which the model belong", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
+                       @ApiParam(value = "Property of the classifier", required = true, example = "requirement") @RequestParam("property") String property,
                        @ApiParam(value = "List of property values to update models (if empty, all values are generated)")
                                    @RequestParam(value = "Model list", required = false) List<String> modelList) throws Exception {
         classificationService.updateMulti(
@@ -92,8 +92,8 @@ public class MultiClassificationController {
                     " the domain model. The result is a list of recommendations based on the classification results.")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = RecommendationList.class)})
     public RecommendationList classify(@ApiParam(value = "Request with the requirements to train", required = true) @RequestBody ClassifyRequirementList request,
-                                       @ApiParam(value = "Company to which the model belong", required = true) @RequestParam("company") String enterpriseName,
-                                       @ApiParam(value = "Property of the classifier", required = true) @RequestParam("property") String property,
+                                       @ApiParam(value = "Company to which the model belong", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
+                                       @ApiParam(value = "Property of the classifier", required = true, example = "requirement") @RequestParam("property") String property,
                                        @ApiParam(value = "List of property values to generate models (if empty, all values are generated)")
                                            @RequestParam(value = "Model list", required = false) List<String> modelList,
                                        @ApiParam(value = "Apply contextual information analysis?")
@@ -114,8 +114,8 @@ public class MultiClassificationController {
                     "Returns the average of several statistics like the accuracy of the model\n")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = DomainStats.class)})
     public DomainStats trainAndTest(@ApiParam(value = "Request with the requirements to test", required = true) @RequestBody MultiRequirementList request,
-                                    @ApiParam(value = "Number of tests", required = true) @RequestParam("k") int n,
-                                    @ApiParam(value = "Property of the classifier", required = true) @RequestParam("property") String property,
+                                    @ApiParam(value = "Number of tests", required = true, example = "10") @RequestParam("k") int n,
+                                    @ApiParam(value = "Property of the classifier", required = true, example = "requirement") @RequestParam("property") String property,
                                     @ApiParam(value = "List of property values to generate models (if empty, all values are generated)")
                                         @RequestParam(value = "Model list", required = false) List<String> modelList,
                                     @ApiParam(value = "Apply contextual information analysis?") @RequestParam(value = "context", defaultValue = "false", required = false) Boolean context) throws Exception {

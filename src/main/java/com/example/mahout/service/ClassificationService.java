@@ -204,7 +204,7 @@ public class ClassificationService {
             RequirementList test = new RequirementList(testSets.get(i));
             train(train, property, "train_and_test");
             RecommendationList recommendations = classify(test, property, "train_and_test", context);
-            partialStats.add(new Stats(recommendations));
+            partialStats.add(new Stats(recommendations, test, property));
         }
 
         /* Execute all tests one by one */
@@ -239,7 +239,7 @@ public class ClassificationService {
             }
             else {
                 double d = total_results.get(values_keys.get(i));
-                d = d / n;
+                d = n > 0 ? d / n : 0;
                 total_results.put(values_keys.get(i), d);
             }
         }
