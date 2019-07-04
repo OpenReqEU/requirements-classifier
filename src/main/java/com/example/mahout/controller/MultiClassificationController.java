@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -32,7 +33,8 @@ public class MultiClassificationController {
                     "- If *modelList* is neither null nor empty, a model is created per each value of *property* in *modelList*\n" +
                     "- Else if *modelList* is null or empty, a model is created per each possible value of *property* found in the dataset\n\n" +
                     " Each model is a sub-classifier evaluating whether a given requirement can be classified as a specific value of " +
-                    "the *property* field.")
+                    "the *property* field.\n\n" +
+                    "**WARNING**: if no data is provided for a specific property value, no model will be created")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = String.class)})
     public String test(@ApiParam(value = "Request with the requirements to train", required = true) @RequestBody MultiRequirementList request,
                      @ApiParam(value = "Company to which the model belong", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
@@ -46,6 +48,18 @@ public class MultiClassificationController {
                 modelList);
 
         return "Train successful";
+    }
+
+    @GetMapping("/model/{property}")
+    @ApiOperation(value = "Get models from property", notes = "Given a **company** and a **property**, returns a " +
+            "list of all models created for that multi-label property. Notice that if no data was provided for a " +
+            "specific value, no model has been created.")
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = ArrayList.class)})
+    public List<String> getMultilabelValues(@ApiParam(value = "Company to which the model belong", required = true, example = "UPC")
+                                                @RequestParam("company") String enterpriseName,
+                                            @ApiParam(value = "Property of the classifier", required = true, example = "requirement")
+                                            @PathVariable("property") String property) {
+        return classificationService.getMultilabelValues(enterpriseName, property);
     }
 
     @DeleteMapping("/model")

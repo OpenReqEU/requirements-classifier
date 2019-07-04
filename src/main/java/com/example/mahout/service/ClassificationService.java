@@ -14,16 +14,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class ClassificationService {
@@ -679,7 +677,10 @@ public class ClassificationService {
     public void trainByDomain(RequirementList request, String enterprise, String propertyKey, List<String> modelList) throws Exception {
         HashMap<String, RequirementList> domainRequirementsMap = dataService.mapByDomain(request, propertyKey);
         for (String domain : domainRequirementsMap.keySet()) {
-            if (!domain.trim().isEmpty()) {
+            if (domainRequirementsMap.get(domain).getRequirements().size() == 0) {
+                System.out.println("Model not created for property " + domain + ": not enough data");
+            }
+            else if (!domain.trim().isEmpty()) {
                 if (modelList == null || modelList.isEmpty()) createDomainModel(request, domainRequirementsMap.get(domain), enterprise, propertyKey, domain);
                 else if (modelList.contains(domain)) createDomainModel(request, domainRequirementsMap.get(domain), enterprise, propertyKey, domain);
             }
@@ -810,4 +811,21 @@ public class ClassificationService {
         return total;
     }
 
+    public List<String> getMultilabelValues(String enterpriseName, String property) {
+        try {
+            if (fileModelSQL == null)
+                fileModelSQL = new CompanyModelDAOMySQL();
+            List<String> models =  fileModelSQL.findAllMulti(enterpriseName, property).stream().map(CompanyModel::getProperty)
+                    .collect(Collectors.toList());
+            for (int n = 0; n < models.size(); n++) {
+                models.set(n, models.get(n).split("#")[1]);
+            }
+            return models;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }
