@@ -19,6 +19,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -27,6 +28,8 @@ import java.util.stream.Collectors;
 public class ClassificationService {
 
     private static CompanyModelDAOMySQL fileModelSQL;
+    private Random rand = new Random();
+
 
     @Autowired
     private DataService dataService;
@@ -261,6 +264,30 @@ public class ClassificationService {
 
         System.out.println("Directories deleted, train&test functionality finished.");
         return result;
+    }
+
+    public ResultId trainAsync(RequirementList request, String property, String enterpriseName, String url) {
+        ResultId id = getId();
+        //New thread
+        Thread thread = new Thread(() -> {
+            Response response = new Response();
+            try {
+                train(request, property, enterpriseName);
+                response.setMessage("Train successful");
+                response.setCode(200);
+                response.setId(id.getId());
+            } catch (Exception e) {
+                response.setMessage("There was an internal error. Please contact an administrator");
+                response.setCode(500);
+                response.setId(id.getId());
+            }
+            finally {
+                AsyncService.updateClient(response, url);
+            }
+        });
+
+        thread.start();
+        return id;
     }
 
     public void train(RequirementList request, String property, String enterpriseName) throws Exception {
@@ -672,6 +699,35 @@ public class ClassificationService {
             System.out.println("Error");
             return "Model(s) not found";
         }
+    }
+
+    public ResultId trainByDomainAsync(RequirementList requirementList, String enterpriseName, String property,
+                                       List<String> modelList, String url) {
+        ResultId id = getId();
+        //New thread
+        Thread thread = new Thread(() -> {
+            Response response = new Response();
+            try {
+                trainByDomain(requirementList, enterpriseName, property, modelList);
+                response.setMessage("Train successful");
+                response.setCode(200);
+                response.setId(id.getId());
+            } catch (Exception e) {
+                response.setMessage("There was an internal error. Please contact an administrator");
+                response.setCode(500);
+                response.setId(id.getId());
+            }
+            finally {
+                AsyncService.updateClient(response, url);
+            }
+        });
+
+        thread.start();
+        return id;
+    }
+
+    private ResultId getId() {
+        return new ResultId(System.currentTimeMillis() + "_" + rand.nextInt(1000));
     }
 
     public void trainByDomain(RequirementList request, String enterprise, String propertyKey, List<String> modelList) throws Exception {

@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/upc/classifier-component/multiclassifier")
 @Api(value = "Facade", produces = MediaType.APPLICATION_JSON_VALUE)
-public class MultiClassificationController {
+public class MultilabelClassificationController {
 
     @Autowired
     private ClassificationService classificationService;
@@ -34,27 +34,41 @@ public class MultiClassificationController {
                     "- Else if *modelList* is null or empty, a model is created per each possible value of *property* found in the dataset\n\n" +
                     " Each model is a sub-classifier evaluating whether a given requirement can be classified as a specific value of " +
                     "the *property* field.\n\n" +
+                    "This method is executed in an asynchronous way. As a response you will get an object with a single attribute " +
+                    "id (check swagger response below) when the training has started. Once the execution is finished, you will " +
+                    "get a response to the endpoint set at the *url* parameter. The format of the response is as follows: \n\n" +
+                    "{\n" +
+                    "\t\"message\":\"Response message\",\n" +
+                    "\t\"id\": \"1562315038067_409\",\n" +
+                    "\t\"code\": 200\n" +
+                    "}\n\n" +
+                    "The 'id' field can be used to match the synchronous response of the request with the asynchronous " +
+                    "response of the response. The 'code' field states the HTTP code of the request.\n\n" +
                     "**WARNING**: if no data is provided for a specific property value, no model will be created")
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = String.class)})
-    public String test(@ApiParam(value = "Request with the requirements to train", required = true) @RequestBody MultiRequirementList request,
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = ResultId.class)})
+    public ResultId test(@ApiParam(value = "Request with the requirements to train", required = true) @RequestBody MultiRequirementList request,
                      @ApiParam(value = "Company to which the model belong", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
                      @ApiParam(value = "Property of the classifier", required = true, example = "requirement") @RequestParam("property") String property,
                      @ApiParam(value = "List of property values to generate models (if empty, all values are generated)")
-                         @RequestParam(value = "modelList", required = false) List<String> modelList) throws Exception {
-        classificationService.trainByDomain(
+                         @RequestParam(value = "modelList", required = false) List<String> modelList,
+                     @ApiParam(value = "The endpoint where the result of the operation will be returned")
+                         @RequestParam("url") String url) throws Exception {
+
+        return classificationService.trainByDomainAsync(
                 new RequirementList(request, property),
                 enterpriseName,
                 property,
-                modelList);
+                modelList,
+                url);
 
-        return "Train successful";
+        //return "Train successful";
     }
 
     @GetMapping("/model/{property}")
     @ApiOperation(value = "Get models from property", notes = "Given a **company** and a **property**, returns a " +
             "list of all models created for that multi-label property. Notice that if no data was provided for a " +
             "specific value, no model has been created.")
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = ArrayList.class)})
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = String[].class)})
     public List<String> getMultilabelValues(@ApiParam(value = "Company to which the model belong", required = true, example = "UPC")
                                                 @RequestParam("company") String enterpriseName,
                                             @ApiParam(value = "Property of the classifier", required = true, example = "requirement")

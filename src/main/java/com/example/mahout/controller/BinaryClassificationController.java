@@ -36,15 +36,26 @@ public class BinaryClassificationController {
     @ApiOperation(value = "Create a model",
             notes = "Given a list of requirements, and a specific company and property, a new model is generated and stored in "
                     + "the database. Each model is identified by a company and a property. Therefore, there is only one model per" +
-                    " property and company.")
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = String.class)})
-    public String train(@ApiParam(value = "Request with the requirements to train the model", required = true) @RequestBody RequirementList request,
+                    " property and company.\n\n" +
+                    "This method is executed in an asynchronous way. As a response you will get an object with a single attribute " +
+                    "id (check swagger response below) when the training has started. Once the execution is finished, you will " +
+                    "get a response to the endpoint set at the *url* parameter. The format of the response is as follows: \n\n" +
+                    "{\n" +
+                    "\t\"message\":\"Response message\",\n" +
+                    "\t\"id\": \"1562315038067_409\",\n" +
+                    "\t\"code\": 200\n" +
+                    "}\n\n" +
+                    "The 'id' field can be used to match the synchronous response of the request with the asynchronous " +
+                    "response of the response. The 'code' field states the HTTP code of the request.")
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = ResultId.class)})
+    public ResultId train(@ApiParam(value = "Request with the requirements to train the model", required = true) @RequestBody RequirementList request,
                                @ApiParam(value = "Property of the classifier (requirement_type)", required = true, example = "requirement") @RequestParam("property") String property,
-                               @ApiParam(value = "Proprietary company of the model", required = true, example = "UPC") @RequestParam("company") String enterpriseName) throws Exception {
+                               @ApiParam(value = "Proprietary company of the model", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
+                          @ApiParam(value = "The endpoint where the result of the operation will be returned")
+                              @RequestParam("url") String url) throws Exception {
 
-        classificationService.train(request, property, enterpriseName);
+        return classificationService.trainAsync(request, property, enterpriseName, url);
 
-        return "Train successful";
     }
 
     @RequestMapping(value = "model", method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_VALUE)
