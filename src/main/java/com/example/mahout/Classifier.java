@@ -4,6 +4,8 @@ import com.example.mahout.DAO.CompanyModelDAO;
 import com.example.mahout.DAO.CompanyModelDAOMySQL;
 import com.example.mahout.entity.CompanyModel;
 import com.example.mahout.entity.Requirement;
+import com.example.mahout.entity.ResultId;
+import com.example.mahout.service.AsyncService;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Multiset;
 import org.apache.commons.io.FilenameUtils;
@@ -72,22 +74,25 @@ public class Classifier {
         return documentFrequency;
     }
 
-    private void createTmpFiles(CompanyModel companyModel) throws IOException {
+    private void createTmpFiles(CompanyModel companyModel, ResultId resultId) throws IOException {
+
         byte[] model_file_bytes = companyModel.getModel();
         byte[] labelindex_file_bytes = companyModel.getLabelindex();
         byte[] dictionary_file_bytes = companyModel.getDictionary();
         byte[] frequencies_file_bytes = companyModel.getFrequencies();
 
-        java.nio.file.Path tmp_model_file = Paths.get("./tmpFiles/naiveBayesModel.bin");
+        Files.createDirectories(Paths.get("./tmpFiles/" + resultId.getId()));
+
+        java.nio.file.Path tmp_model_file = Paths.get("./tmpFiles/" + resultId.getId() + "/naiveBayesModel.bin");
         Files.write(tmp_model_file, model_file_bytes);
 
-        java.nio.file.Path tmp_labelindex_file = Paths.get("./tmpFiles/labelindex");
+        java.nio.file.Path tmp_labelindex_file = Paths.get("./tmpFiles/" + resultId.getId() + "/labelindex");
         Files.write(tmp_labelindex_file, labelindex_file_bytes);
 
-        java.nio.file.Path tmp_dictionary_file = Paths.get("./tmpFiles/dictionary.file-0");
+        java.nio.file.Path tmp_dictionary_file = Paths.get("./tmpFiles/"+ resultId.getId() + "/dictionary.file-0");
         Files.write(tmp_dictionary_file, dictionary_file_bytes);
 
-        java.nio.file.Path tmp_frequencies_file = Paths.get("./tmpFiles/df-count");
+        java.nio.file.Path tmp_frequencies_file = Paths.get("./tmpFiles/" + resultId.getId()+ "/df-count");
         Files.write(tmp_frequencies_file, frequencies_file_bytes);
 
         modelPath = FilenameUtils.getPath(tmp_model_file.toString());
@@ -101,7 +106,7 @@ public class Classifier {
         System.out.println("\nFrequencies Path: " + frequenciesPath + "\n");
     }
 
-    private void deleteTmpFiles() {
+    private void deleteTmpFiles(ResultId resultId) {
         File model = new File(modelPath + "/naiveBayesModel.bin");
         File labelindex = new File(labelindexPath);
         File dictionary = new File(dictionaryPath);
@@ -111,11 +116,17 @@ public class Classifier {
         labelindex.delete();
         dictionary.delete();
         frequencies.delete();
+        try {
+            Files.delete(Paths.get("./tmpFiles/" + resultId.getId()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         System.out.println("Files deleted correctly\n");
     }
 
-    public  ArrayList<Pair<String, Pair<String, Double>>> classify(String companyName, List<Requirement> requirements, String property) throws Exception {
+    public  ArrayList<Pair<String, Pair<String, Double>>> classify(String companyName, List<Requirement> requirements, String property,
+                                                                   ResultId resultId) throws Exception {
 
         /* Load the companyModel from the database */
         CompanyModel companyModel = companyModelDAO.findOne(companyName, property);
@@ -123,7 +134,7 @@ public class Classifier {
         if (companyModel == null)
             throw new Exception("Model not found");
 
-        createTmpFiles(companyModel);
+        createTmpFiles(companyModel, resultId);
 
         Configuration configuration = new Configuration();
 
@@ -221,7 +232,7 @@ public class Classifier {
             System.out.println(" => " + labels.get(bestCategoryId) + "\tConfidence: "+ confidence);
         }
 
-        deleteTmpFiles();
+        deleteTmpFiles(resultId);
         return recomendations;
     }
 

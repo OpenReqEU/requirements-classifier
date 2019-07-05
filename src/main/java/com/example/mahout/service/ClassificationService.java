@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 public class ClassificationService {
 
     private static CompanyModelDAOMySQL fileModelSQL;
-    private Random rand = new Random();
 
 
     @Autowired
@@ -267,7 +266,7 @@ public class ClassificationService {
     }
 
     public ResultId trainAsync(RequirementList request, String property, String enterpriseName, String url) {
-        ResultId id = getId();
+        ResultId id = AsyncService.getId();
         //New thread
         Thread thread = new Thread(() -> {
             Response response = new Response();
@@ -277,7 +276,8 @@ public class ClassificationService {
                 response.setCode(200);
                 response.setId(id.getId());
             } catch (Exception e) {
-                response.setMessage("There was an internal error. Please contact an administrator");
+                e.printStackTrace();
+                response.setMessage(e.getMessage());
                 response.setCode(500);
                 response.setId(id.getId());
             }
@@ -427,8 +427,11 @@ public class ClassificationService {
 
         System.out.println("Starting classifier");
 
+        ResultId resultId = AsyncService.getId();
+
         /* Classify the requirements with the model of the company */
-        ArrayList<Pair<String, Pair<String, Double>>> recomendations = classifier.classify(enterpriseName, requirements, property);
+        ArrayList<Pair<String, Pair<String, Double>>> recomendations = classifier.classify(enterpriseName, requirements, property,
+                resultId);
 //        List<Recommendation> list = new ArrayList<>();
         HashMap<String, Recommendation> recommendationMap = new HashMap<>();
 
@@ -703,7 +706,7 @@ public class ClassificationService {
 
     public ResultId trainByDomainAsync(RequirementList requirementList, String enterpriseName, String property,
                                        List<String> modelList, String url) {
-        ResultId id = getId();
+        ResultId id = AsyncService.getId();
         //New thread
         Thread thread = new Thread(() -> {
             Response response = new Response();
@@ -713,7 +716,8 @@ public class ClassificationService {
                 response.setCode(200);
                 response.setId(id.getId());
             } catch (Exception e) {
-                response.setMessage("There was an internal error. Please contact an administrator");
+                e.printStackTrace();
+                response.setMessage(e.getMessage());
                 response.setCode(500);
                 response.setId(id.getId());
             }
@@ -724,10 +728,6 @@ public class ClassificationService {
 
         thread.start();
         return id;
-    }
-
-    private ResultId getId() {
-        return new ResultId(System.currentTimeMillis() + "_" + rand.nextInt(1000));
     }
 
     public void trainByDomain(RequirementList request, String enterprise, String propertyKey, List<String> modelList) throws Exception {

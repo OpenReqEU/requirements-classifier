@@ -11,6 +11,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 
 import java.io.IOException;
+import java.util.Random;
 
 public class AsyncService {
 
@@ -29,6 +30,11 @@ public class AsyncService {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static ResultId getId() {
+        Random rand = new Random();
+        return new ResultId(System.currentTimeMillis() + "_" + rand.nextInt(1000));
     }
 
 }
