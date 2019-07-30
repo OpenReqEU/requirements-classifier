@@ -163,6 +163,8 @@ public class Classifier {
         /* Return a list of pairs: Requirement, (Best caregory, Confidence) */
         ArrayList<Pair<String, Pair<String, Double>>> recomendations = new ArrayList<Pair<String,Pair<String, Double>>>();
 
+        String csvFile = "";
+
         for (int k = 0; k < requirements.size() ;k++) {
 
             Requirement requirement = requirements.get(k);
@@ -224,13 +226,56 @@ public class Classifier {
             }
             double confidence = 0;
             double label_score = 0;
+
+            double minScore = -Double.MIN_VALUE;
+            double maxScore = -Double.MAX_VALUE;
+
+            /*for (Multiset.Entry<String> entry: words.entrySet()) {
+                String word = entry.getElement();
+                wordId = dictionary.get(word);
+                Double defScore = classifier.getScoreForLabelFeature(0, wordId);
+                Double proseScore = classifier.getScoreForLabelFeature(1, wordId);
+                System.out.println("\t" + word);
+                System.out.println("\t\tDEF : " + defScore);
+                System.out.println("\t\tProse : " + proseScore);
+                if (minScore >= defScore) minScore = defScore;
+                if (minScore >= proseScore) minScore = proseScore;
+                if (maxScore <= defScore) maxScore = defScore;
+                if (maxScore <= proseScore) maxScore = proseScore;
+            }
+
+            System.out.println("Min score = " + minScore);
+            System.out.println("Max score = " + maxScore);*/
+
             if (wordId != null) {
                 label_score = classifier.getScoreForLabelFeature(bestCategoryId, wordId);
             }
-            confidence = 100.0 + label_score;
+            /*double prob = 0.;
+            for (Multiset.Entry<String> entry: words.entrySet()) {
+                String word = entry.getElement();
+                wordId = dictionary.get(word);
+                Double score = classifier.getScoreForLabelFeature(bestCategoryId, wordId);
+                prob += (score - minScore) / (maxScore - minScore) * 100;
+            }
+            prob /= words.size();*/
+
+            double defScore = resultVector.getElement(0).get();
+            double proseScore = resultVector.getElement(1).get();
+            //confidence = 100.0 + label_score;
+            double dif = Math.min(75.0, Math.abs(defScore - proseScore)) / 75.00;
+            confidence = 50.0 + dif * 50.0 ;
             recomendations.add(new Pair(reqId, (new Pair(labels.get(bestCategoryId), confidence))));
+            //recomendations.add(new Pair(reqId, (new Pair(labels.get(bestCategoryId), prob))));
             System.out.println(" => " + labels.get(bestCategoryId) + "\tConfidence: "+ confidence);
+
+            //FIXME
+            /*String bestCategory = labels.get(bestCategoryId);
+            String category = requirement.getRequirement_type();
+            int tag = bestCategory.equals(category) ? 1 : 0;
+            csvFile += confidence + "," + tag + "\n";*/
         }
+
+        //Files.write(Paths.get("data.csv"), csvFile.getBytes());
 
         deleteTmpFiles(resultId);
         return recomendations;
