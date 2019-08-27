@@ -5,7 +5,7 @@ info:
   version: '3.1'
   license:
     name: '0.1'
-host: 'localhost:9402'
+host: 'https://api.openreq.eu/requirements-classifier'
 basePath: /
 tags:
   - name: binary-classification-controller
