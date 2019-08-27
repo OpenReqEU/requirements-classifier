@@ -2,21 +2,21 @@ swagger: '2.0'
 info:
   description: REST API for requirement classifier using mahout
   title: Requirement Classifier API
-  version: '1.0'
+  version: '3.1'
   license:
     name: '0.1'
-host: '217.172.12.199:9402'
+host: 'localhost:9402'
 basePath: /
 tags:
-  - name: classification-controller
-    description: Classification Controller
-  - name: domain-classification-controller
-    description: Domain Classification Controller
+  - name: binary-classification-controller
+    description: Binary Classification Controller
+  - name: multilabel-classification-controller
+    description: Multilabel Classification Controller
 paths:
   /upc/classifier-component/classify:
     post:
       tags:
-        - classification-controller
+        - binary-classification-controller
       summary: Classify a list of requirements
       description: 'Given a list of requirements, and using the model stored for the requested company, the requirements are classified  and a recommended label is returned for each requirement (with a level of confidence)'
       operationId: classifyUsingPOST
@@ -27,13 +27,21 @@ paths:
       parameters:
         - name: company
           in: query
-          description: Company to which the model belong
+          description: Proprietary company of the model
           required: true
           type: string
           allowEmptyValue: false
+        - name: context
+          in: query
+          description: Apply contextual information analysis?
+          required: false
+          type: boolean
+          default: false
+          allowEmptyValue: false
+          x-example: false
         - name: property
           in: query
-          description: Property of the classifier
+          description: Property of the classifier (requirement_type)
           required: true
           type: string
           allowEmptyValue: false
@@ -42,7 +50,7 @@ paths:
           description: Request with the requirements to classify
           required: true
           schema:
-            $ref: '#/definitions/Requirements_list'
+            $ref: '#/definitions/Classify requirements list'
       responses:
         '200':
           description: OK
@@ -57,24 +65,89 @@ paths:
         '404':
           description: Not Found
       deprecated: false
-  /upc/classifier-component/deleteModel:
+  /upc/classifier-component/model:
     post:
       tags:
-        - classification-controller
-      summary: Deleted an existing model
-      description: 'Given a company and a property, deletes the associated stored model.'
-      operationId: deleteModelUsingPOST
+        - binary-classification-controller
+      summary: Create a model
+      description: "Given a list of requirements, and a specific company and property, a new model is generated and stored in the database. Each model is identified by a company and a property. Therefore, there is only one model per property and company.\n\nThis method is executed in an asynchronous way. As a response you will get an object with a single attribute id (check swagger response below) when the training has started. Once the execution is finished, you will get a response to the endpoint set at the *url* parameter. The format of the response is as follows: \n\n{\n\t\"message\":\"Response message\",\n\t\"id\": \"1562315038067_409\",\n\t\"code\": 200\n}\n\nThe 'id' field can be used to match the synchronous response of the request with the asynchronous response of the response. The 'code' field states the HTTP code of the request."
+      operationId: trainUsingPOST
       consumes:
         - application/json
       produces:
         - '*/*'
       parameters:
+        - name: company
+          in: query
+          description: Proprietary company of the model
+          required: true
+          type: string
+          allowEmptyValue: false
+          x-example: UPC
+        - name: property
+          in: query
+          description: Property of the classifier (requirement_type)
+          required: true
+          type: string
+          allowEmptyValue: false
+          x-example: requirement
         - in: body
           name: request
-          description: request
+          description: Request with the requirements to train the model
           required: true
           schema:
-            $ref: '#/definitions/CompanyPropertyKey'
+            $ref: '#/definitions/Requirements list'
+        - name: url
+          in: query
+          description: The endpoint where the result of the operation will be returned
+          required: false
+          type: string
+          allowEmptyValue: false
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/ResultId'
+        '201':
+          description: Created
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      deprecated: false
+    put:
+      tags:
+        - binary-classification-controller
+      summary: Update a model
+      description: 'Given a list of requirements, updates the model of the classifier for the given company'
+      operationId: updateUsingPUT
+      consumes:
+        - application/json
+      produces:
+        - '*/*'
+      parameters:
+        - name: company
+          in: query
+          description: Proprietary company of the model
+          required: true
+          type: string
+          allowEmptyValue: false
+          x-example: UPC
+        - name: property
+          in: query
+          description: Property of the classifier (requirement_type)
+          required: true
+          type: string
+          allowEmptyValue: false
+          x-example: requirement
+        - in: body
+          name: request
+          description: Request with the requirements to train and update the model
+          required: true
+          schema:
+            $ref: '#/definitions/Requirements list'
       responses:
         '200':
           description: OK
@@ -89,10 +162,44 @@ paths:
         '404':
           description: Not Found
       deprecated: false
-  /upc/classifier-component/domain/classify:
+    delete:
+      tags:
+        - binary-classification-controller
+      summary: Delete a model
+      description: |-
+        Given a **company** and a **property**, deletes the associated stored model. Additionally this method allows some variations:
+        - If *property* = "ALL", removes all models of the given company.
+        - If *company* = "ALL", removes all models of all companies (used as safe drop database).
+      operationId: deleteModelUsingDELETE
+      produces:
+        - '*/*'
+      parameters:
+        - in: body
+          name: request
+          description: request
+          required: true
+          schema:
+            $ref: '#/definitions/CompanyPropertyKey'
+      responses:
+        '200':
+          description: Files deleted correctly
+          schema:
+            type: string
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Model(s) not found
+          schema:
+            type: string
+      deprecated: false
+  /upc/classifier-component/multiclassifier/classify:
     post:
       tags:
-        - domain-classification-controller
+        - multilabel-classification-controller
       summary: Classify by domain
       description: 'Given a list of requirements, a company name and a domain of the company, classifies the list of requirements using the domain model. The result is a list of recommendations based on the classification results.'
       operationId: classifyUsingPOST_1
@@ -101,24 +208,43 @@ paths:
       produces:
         - '*/*'
       parameters:
+        - name: Model list
+          in: query
+          description: 'List of property values to generate models (if empty, all values are generated)'
+          required: false
+          type: array
+          items:
+            type: string
+          collectionFormat: multi
+          allowEmptyValue: false
         - name: company
           in: query
           description: Company to which the model belong
           required: true
           type: string
           allowEmptyValue: false
-        - name: domain
+          x-example: UPC
+        - name: context
           in: query
-          description: Domain to classify requirements by
+          description: Apply contextual information analysis?
+          required: false
+          type: boolean
+          default: false
+          allowEmptyValue: false
+          x-example: false
+        - name: property
+          in: query
+          description: Property of the classifier
           required: true
           type: string
           allowEmptyValue: false
+          x-example: requirement
         - in: body
           name: request
           description: Request with the requirements to train
           required: true
           schema:
-            $ref: '#/definitions/Requirements_list'
+            $ref: '#/definitions/Classify requirements list'
       responses:
         '200':
           description: OK
@@ -133,12 +259,12 @@ paths:
         '404':
           description: Not Found
       deprecated: false
-  /upc/classifier-component/domain/train:
+  /upc/classifier-component/multiclassifier/model:
     post:
       tags:
-        - domain-classification-controller
-      summary: Create domain models
-      description: 'Given a list of requirements and a company name, a model is created for each domain present in the requirements list. Each model evaluates if the requirement belongs to the domain or not.'
+        - multilabel-classification-controller
+      summary: Create multiple models
+      description: "Given a list of requirements and a company name, multiple models are created based on the values of a given *property* which are set as a *requirementParts* field. Given a *requirementPart* object:\n\n- *id*: the *property* of the classifier (i.e. *reqDomains*)\n- *text*: a \\n separated list with the values of the *requirementPart* (i.e. the *property*)\n\nThis method results in a creation of a set of models, which are created as follows:\n\n- If *modelList* is neither null nor empty, a model is created per each value of *property* in *modelList*\n- Else if *modelList* is null or empty, a model is created per each possible value of *property* found in the dataset\n\n Each model is a sub-classifier evaluating whether a given requirement can be classified as a specific value of the *property* field.\n\nThis method is executed in an asynchronous way. As a response you will get an object with a single attribute id (check swagger response below) when the training has started. Once the execution is finished, you will get a response to the endpoint set at the *url* parameter. The format of the response is as follows: \n\n{\n\t\"message\":\"Response message\",\n\t\"id\": \"1562315038067_409\",\n\t\"code\": 200\n}\n\nThe 'id' field can be used to match the synchronous response of the request with the asynchronous response of the response. The 'code' field states the HTTP code of the request.\n\n**WARNING**: if no data is provided for a specific property value, no model will be created"
       operationId: testUsingPOST
       consumes:
         - application/json
@@ -151,12 +277,100 @@ paths:
           required: true
           type: string
           allowEmptyValue: false
+          x-example: UPC
+        - name: modelList
+          in: query
+          description: 'List of property values to generate models (if empty, all values are generated)'
+          required: false
+          type: array
+          items:
+            type: string
+          collectionFormat: multi
+          allowEmptyValue: false
+        - name: property
+          in: query
+          description: Property of the classifier
+          required: true
+          type: string
+          allowEmptyValue: false
+          x-example: requirement
         - in: body
           name: request
           description: Request with the requirements to train
           required: true
           schema:
-            $ref: '#/definitions/Requirements_list'
+            $ref: '#/definitions/Multiclassify requirements list'
+        - name: url
+          in: query
+          description: The endpoint where the result of the operation will be returned
+          required: false
+          type: string
+          allowEmptyValue: false
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/ResultId'
+        '201':
+          description: Created
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      deprecated: false
+    put:
+      tags:
+        - multilabel-classification-controller
+      summary: Update multiple models
+      description: |-
+        Given a list of requirements and a company name, a multidimensional classifier (i.e. multiple models) is updated based on the values of a given *property* which are set as a *requirementParts* field. Given a *requirementPart* object:
+
+        - *id*: the *property* of the classifier (i.e. *reqDomains*)
+        - *text*: a \n separated list with the values of the *requirementPart* (i.e. the *property*)
+
+        This method results in the update of a set of models, which are created as follows:
+
+        - If *modelList* is neither null nor empty, a model is updated per each value of *property* in *modelList*
+        - Else if *modelList* is null or empty, a model is updated per each possible value of *property* found in the dataset
+
+         Each model is a sub-classifier evaluating whether a given requirement can be classified as a specific value of the *property* field.
+      operationId: updateUsingPUT_1
+      consumes:
+        - application/json
+      produces:
+        - '*/*'
+      parameters:
+        - name: Model list
+          in: query
+          description: 'List of property values to update models (if empty, all values are generated)'
+          required: false
+          type: array
+          items:
+            type: string
+          collectionFormat: multi
+          allowEmptyValue: false
+        - name: company
+          in: query
+          description: Company to which the model belong
+          required: true
+          type: string
+          allowEmptyValue: false
+          x-example: UPC
+        - name: property
+          in: query
+          description: Property of the classifier
+          required: true
+          type: string
+          allowEmptyValue: false
+          x-example: requirement
+        - in: body
+          name: request
+          description: Request with the requirements to train
+          required: true
+          schema:
+            $ref: '#/definitions/Multiclassify requirements list'
       responses:
         '200':
           description: OK
@@ -171,13 +385,91 @@ paths:
         '404':
           description: Not Found
       deprecated: false
-  /upc/classifier-component/domain/train&test:
+    delete:
+      tags:
+        - multilabel-classification-controller
+      summary: Delete multiple models
+      description: |-
+        Given a **company** and a **property**, delete the associated stored models for the given *property* as follows:
+
+        - If *modelList* is neither null nor empty, a model is deleted per each value of *property* in *modelList*
+
+        - Else if *modelList* is null or empty, all models of the given *property* are deleted
+      operationId: deleteUsingDELETE
+      produces:
+        - '*/*'
+      parameters:
+        - name: modelList
+          in: query
+          description: 'List of property values to generate models (if empty, all values are generated)'
+          required: false
+          type: array
+          items:
+            type: string
+          collectionFormat: multi
+          allowEmptyValue: false
+        - in: body
+          name: request
+          description: request
+          required: true
+          schema:
+            $ref: '#/definitions/CompanyPropertyKey'
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: string
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+      deprecated: false
+  '/upc/classifier-component/multiclassifier/model/{property}':
+    get:
+      tags:
+        - multilabel-classification-controller
+      summary: Get models from property
+      description: 'Given a **company** and a **property**, returns a list of all models created for that multi-label property. Notice that if no data was provided for a specific value, no model has been created.'
+      operationId: getMultilabelValuesUsingGET
+      produces:
+        - '*/*'
+      parameters:
+        - name: company
+          in: query
+          description: Company to which the model belong
+          required: true
+          type: string
+          allowEmptyValue: false
+          x-example: UPC
+        - name: property
+          in: path
+          description: Property of the classifier
+          required: true
+          type: string
+          x-example: requirement
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              type: string
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      deprecated: false
+  /upc/classifier-component/multiclassifier/train&test:
     post:
       tags:
-        - domain-classification-controller
+        - multilabel-classification-controller
       summary: Train and test by domain
       description: |
-        Returns the result of k cross-validation using the requirements recieved in the request and the model of the implicit company and domain. Splits the requirements in k groups, trains a classifier for each group with all of the requirements recieved except the ones in the group and tests it with the requirements in the group.
+        Returns the result of k cross-validation using the requirements recieved in the request and the model of the implicit company and PROPERTY-KEY+. Splits the requirements in k groups, trains a classifier for each group with all of the requirements recieved except the ones in the group and tests it with the requirements in the group.
         Returns the average of several statistics like the accuracy of the model
       operationId: trainAndTestUsingPOST_1
       consumes:
@@ -185,6 +477,23 @@ paths:
       produces:
         - application/json
       parameters:
+        - name: Model list
+          in: query
+          description: 'List of property values to generate models (if empty, all values are generated)'
+          required: false
+          type: array
+          items:
+            type: string
+          collectionFormat: multi
+          allowEmptyValue: false
+        - name: context
+          in: query
+          description: Apply contextual information analysis?
+          required: false
+          type: boolean
+          default: false
+          allowEmptyValue: false
+          x-example: false
         - name: k
           in: query
           description: Number of tests
@@ -192,12 +501,20 @@ paths:
           type: integer
           format: int32
           allowEmptyValue: false
+          x-example: 10
+        - name: property
+          in: query
+          description: Property of the classifier
+          required: true
+          type: string
+          allowEmptyValue: false
+          x-example: requirement
         - in: body
           name: request
           description: Request with the requirements to test
           required: true
           schema:
-            $ref: '#/definitions/Requirements_list'
+            $ref: '#/definitions/Multiclassify requirements list'
       responses:
         '200':
           description: OK
@@ -212,85 +529,10 @@ paths:
         '404':
           description: Not Found
       deprecated: false
-  /upc/classifier-component/parse:
-    post:
-      tags:
-        - classification-controller
-      summary: parseSiemensToOpenReq
-      operationId: parseSiemensToOpenReqUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: siemensRequirementList
-          description: siemensRequirementList
-          required: true
-          schema:
-            $ref: '#/definitions/SiemensRequirementList'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/Requirements_list'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-      deprecated: false
-  /upc/classifier-component/train:
-    post:
-      tags:
-        - classification-controller
-      summary: Train a model
-      description: 'Given a list of requirements, and a specific company and property, a new model is generated and stored in the database'
-      operationId: trainUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - name: company
-          in: query
-          description: Company to which the model belong
-          required: true
-          type: string
-          allowEmptyValue: false
-        - name: property
-          in: query
-          description: Property of the classifier
-          required: true
-          type: string
-          allowEmptyValue: false
-        - in: body
-          name: request
-          description: Request with the requirements to train
-          required: true
-          schema:
-            $ref: '#/definitions/Requirements_list'
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: string
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-      deprecated: false
   /upc/classifier-component/train&test:
     post:
       tags:
-        - classification-controller
+        - binary-classification-controller
       summary: Train and test
       description: |
         Returns the result of k cross-validation using the requirements recieved in the request. Splits the requirements in k groups, trains a classifier for each group with all of the requirements recieved except the ones in the group and tests it with the requirements in the group.
@@ -301,6 +543,14 @@ paths:
       produces:
         - application/json
       parameters:
+        - name: context
+          in: query
+          description: Apply contextual information analysis?
+          required: false
+          type: boolean
+          default: false
+          allowEmptyValue: false
+          x-example: false
         - name: k
           in: query
           description: Number of tests
@@ -308,12 +558,18 @@ paths:
           type: integer
           format: int32
           allowEmptyValue: false
+        - name: property
+          in: query
+          description: Property
+          required: false
+          type: string
+          allowEmptyValue: false
         - in: body
           name: request
           description: Request with the requirements to test
           required: true
           schema:
-            $ref: '#/definitions/Requirements_list'
+            $ref: '#/definitions/Requirements list'
       responses:
         '200':
           description: OK
@@ -328,58 +584,50 @@ paths:
         '404':
           description: Not Found
       deprecated: false
-  /upc/classifier-component/update:
-    post:
-      tags:
-        - classification-controller
-      summary: Update a model
-      description: 'Given a list of requirements, updates the model of the classifier for the given company'
-      operationId: updateUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - name: company
-          in: query
-          description: Company to which the model belong
-          required: true
-          type: string
-          allowEmptyValue: false
-        - name: property
-          in: query
-          description: Property of the classifier
-          required: true
-          type: string
-          allowEmptyValue: false
-        - in: body
-          name: request
-          description: Request with the requirements to train and update the model
-          required: true
-          schema:
-            $ref: '#/definitions/Requirements_list'
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: string
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-      deprecated: false
 definitions:
+  Classify Requirement:
+    type: object
+    properties:
+      documentPositionOrder:
+        type: integer
+        format: int32
+        example: 24
+        description: 'The position of the Requirement as ascending number when Requirements are ordered and order has relevance, such as in a document file.'
+      id:
+        type: string
+        example: REQ002
+        description: ID of the requirement
+      requirementParent:
+        type: string
+        example: REQ001
+        description: The parent Requirement of the current Requirement for hierarchical structure in which the parent and child are tied together and cannot be understood without each other.
+      text:
+        type: string
+        example: The system must be implemented using last Java version
+        description: Text with the requirement information
+    title: Classify Requirement
+    description: A project requirement
+  Classify requirements list:
+    type: object
+    properties:
+      requirements:
+        type: array
+        description: Requirements list
+        items:
+          $ref: '#/definitions/Classify Requirement'
+    title: Classify requirements list
+    description: A project reqs list
   CompanyPropertyKey:
     type: object
     properties:
       company:
         type: string
+        example: UPC
+        description: Company
       property:
         type: string
+        example: requirement
+        description: Property of the classifier
     title: CompanyPropertyKey
   ConfusionMatrixStats:
     type: object
@@ -438,6 +686,39 @@ definitions:
         format: double
         description: Weighted recall
     title: DomainStats
+  Multiclassify Requirement:
+    type: object
+    properties:
+      documentPositionOrder:
+        type: integer
+        format: int32
+        description: 'The position of the Requirement as ascending number when Requirements are ordered and order has relevance, such as in a document file.'
+      id:
+        type: string
+        description: ID of the requirement
+      requirementParent:
+        type: string
+        description: The parent Requirement of the current Requirement for hierarchical structure in which the parent and child are tied together and cannot be understood without each other.
+      requirementParts:
+        type: array
+        description: Aggregation of RequirementParts out of which the requirement consists of. This aggregation provides a mechanism for specifying requirement fragments or additional information for the Requirement.
+        items:
+          $ref: '#/definitions/Requirement Part'
+      text:
+        type: string
+        description: Text with the requirement information
+    title: Multiclassify Requirement
+    description: A project requirement
+  Multiclassify requirements list:
+    type: object
+    properties:
+      requirements:
+        type: array
+        description: Requirements list
+        items:
+          $ref: '#/definitions/Multiclassify Requirement'
+    title: Multiclassify requirements list
+    description: A project reqs list
   Recommendation:
     type: object
     properties:
@@ -460,21 +741,46 @@ definitions:
   Requirement:
     type: object
     properties:
+      documentPositionOrder:
+        type: integer
+        format: int32
+        example: 24
+        description: 'The position of the Requirement as ascending number when Requirements are ordered and order has relevance, such as in a document file.'
       id:
         type: string
+        example: REQ002
         description: ID of the requirement
-      reqDomains:
+      requirementParent:
         type: string
-        description: Requirement domains
+        example: REQ001
+        description: The parent Requirement of the current Requirement for hierarchical structure in which the parent and child are tied together and cannot be understood without each other.
       requirement_type:
         type: string
+        example: requirement
         description: Requirement type
       text:
         type: string
+        example: The system must be implemented using last Java version
         description: Text with the requirement information
     title: Requirement
     description: A project requirement
-  Requirements_list:
+  Requirement Part:
+    type: object
+    properties:
+      id:
+        type: string
+        example: domain
+        description: ID of the requirement part. Use your attribute property key for multi-label classification
+      text:
+        type: string
+        example: |-
+          Medical
+          Healthcare
+          Automotive
+        description: 'Content of a requirement part. Use the value of your property for multi-label classification. In case of multiple values, use a \n separated list'
+    title: Requirement Part
+    description: 'A part of which a Requirement is composed of (not a sub-requirement). RequirementParts are an extension mechanism for specifying additional information related to a Requirement. For example, RequirementPart can be used to include fragments of Requirement content or additional  properties of Requirement.'
+  Requirements list:
     type: object
     properties:
       requirements:
@@ -484,31 +790,88 @@ definitions:
           $ref: '#/definitions/Requirement'
     title: Requirements list
     description: A project reqs list
-  SiemensRequirement:
+  ResponseEntity:
     type: object
     properties:
-      heading:
+      body:
+        type: object
+      statusCode:
         type: string
-      level:
+        enum:
+          - '100'
+          - '101'
+          - '102'
+          - '103'
+          - '200'
+          - '201'
+          - '202'
+          - '203'
+          - '204'
+          - '205'
+          - '206'
+          - '207'
+          - '208'
+          - '226'
+          - '300'
+          - '301'
+          - '302'
+          - '303'
+          - '304'
+          - '305'
+          - '307'
+          - '308'
+          - '400'
+          - '401'
+          - '402'
+          - '403'
+          - '404'
+          - '405'
+          - '406'
+          - '407'
+          - '408'
+          - '409'
+          - '410'
+          - '411'
+          - '412'
+          - '413'
+          - '414'
+          - '415'
+          - '416'
+          - '417'
+          - '418'
+          - '419'
+          - '420'
+          - '421'
+          - '422'
+          - '423'
+          - '424'
+          - '426'
+          - '428'
+          - '429'
+          - '431'
+          - '451'
+          - '500'
+          - '501'
+          - '502'
+          - '503'
+          - '504'
+          - '505'
+          - '506'
+          - '507'
+          - '508'
+          - '509'
+          - '510'
+          - '511'
+      statusCodeValue:
         type: integer
         format: int32
-      reqDomains:
-        type: string
-      reqType:
-        type: string
-      text:
-        type: string
-      toolId:
-        type: string
-    title: SiemensRequirement
-  SiemensRequirementList:
+    title: ResponseEntity
+  ResultId:
     type: object
     properties:
-      reqs:
-        type: array
-        items:
-          $ref: '#/definitions/SiemensRequirement'
-    title: SiemensRequirementList
+      id:
+        type: string
+    title: ResultId
   Stats:
     type: object
     properties:
