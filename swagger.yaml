@@ -1,56 +1,61 @@
 swagger: '2.0'
 info:
-  description: REST API for requirement classifier using mahout
+  description: |+
+    REST API that provides a requirements classifier. The classifier is based on a Naive Bayes implemented using Apache Mahout (https://mahout.apache.org/)
+
+    This service implements two different classifiers:
+
+    **· Binary classifier:** given a property value V for the *requirement_type* property, the binary classifier builds a classifier to evaluate if a requirement is a member of the property value class (*requirement_type = 'V'*) or if it is not (*requirement_type = 'Prose'*).
+
+    **· Multilabel classifier:** given the domain of property values {V}, the multilabel classifier is used for properties that can have more than one value for each item.
+
   title: Requirement Classifier API
-  version: '3.1'
-  license:
-    name: '0.1'
 host: 'https://api.openreq.eu/requirements-classifier'
 basePath: /
 tags:
-  - name: binary-classification-controller
-    description: Binary Classification Controller
-  - name: multilabel-classification-controller
-    description: Multilabel Classification Controller
+- name: binary-classification-controller
+  description: Binary Classification Controller
+- name: multilabel-classification-controller
+  description: Multilabel Classification Controller
 paths:
   /upc/classifier-component/classify:
     post:
       tags:
-        - binary-classification-controller
+      - binary-classification-controller
       summary: Classify a list of requirements
       description: 'Given a list of requirements, and using the model stored for the requested company, the requirements are classified  and a recommended label is returned for each requirement (with a level of confidence)'
       operationId: classifyUsingPOST
       consumes:
-        - application/json
+      - application/json
       produces:
-        - application/json
+      - application/json
       parameters:
-        - name: company
-          in: query
-          description: Proprietary company of the model
-          required: true
-          type: string
-          allowEmptyValue: false
-        - name: context
-          in: query
-          description: Apply contextual information analysis?
-          required: false
-          type: boolean
-          default: false
-          allowEmptyValue: false
-          x-example: false
-        - name: property
-          in: query
-          description: Property of the classifier (requirement_type)
-          required: true
-          type: string
-          allowEmptyValue: false
-        - in: body
-          name: request
-          description: Request with the requirements to classify
-          required: true
-          schema:
-            $ref: '#/definitions/Classify requirements list'
+      - name: company
+        in: query
+        description: Proprietary company of the model
+        required: true
+        type: string
+        allowEmptyValue: false
+      - name: context
+        in: query
+        description: 'Whether to apply contextual information analysis or not. If positive, contextual information (i.e. requirements'' position order and hierarchical structure) is used to apply the same tag during the classification process to all members belonging to a same document list structure.'
+        required: false
+        type: boolean
+        default: false
+        allowEmptyValue: false
+        x-example: false
+      - name: property
+        in: query
+        description: Property of the classifier (i.e. property value of the *requirement_type* field)
+        required: true
+        type: string
+        allowEmptyValue: false
+      - in: body
+        name: request
+        description: Request with the requirements to classify
+        required: true
+        schema:
+          $ref: '#/definitions/Classify requirements list'
       responses:
         '200':
           description: OK
@@ -68,41 +73,41 @@ paths:
   /upc/classifier-component/model:
     post:
       tags:
-        - binary-classification-controller
+      - binary-classification-controller
       summary: Create a model
       description: "Given a list of requirements, and a specific company and property, a new model is generated and stored in the database. Each model is identified by a company and a property. Therefore, there is only one model per property and company.\n\nThis method is executed in an asynchronous way. As a response you will get an object with a single attribute id (check swagger response below) when the training has started. Once the execution is finished, you will get a response to the endpoint set at the *url* parameter. The format of the response is as follows: \n\n{\n\t\"message\":\"Response message\",\n\t\"id\": \"1562315038067_409\",\n\t\"code\": 200\n}\n\nThe 'id' field can be used to match the synchronous response of the request with the asynchronous response of the response. The 'code' field states the HTTP code of the request."
       operationId: trainUsingPOST
       consumes:
-        - application/json
+      - application/json
       produces:
-        - '*/*'
+      - '*/*'
       parameters:
-        - name: company
-          in: query
-          description: Proprietary company of the model
-          required: true
-          type: string
-          allowEmptyValue: false
-          x-example: UPC
-        - name: property
-          in: query
-          description: Property of the classifier (requirement_type)
-          required: true
-          type: string
-          allowEmptyValue: false
-          x-example: requirement
-        - in: body
-          name: request
-          description: Request with the requirements to train the model
-          required: true
-          schema:
-            $ref: '#/definitions/Requirements list'
-        - name: url
-          in: query
-          description: The endpoint where the result of the operation will be returned
-          required: false
-          type: string
-          allowEmptyValue: false
+      - name: company
+        in: query
+        description: Proprietary company of the model
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: UPC
+      - name: property
+        in: query
+        description: Property of the classifier (i.e. property value of the *requirement_type* field)
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: requirement
+      - in: body
+        name: request
+        description: Request with the requirements to train the model
+        required: true
+        schema:
+          $ref: '#/definitions/Requirements list'
+      - name: url
+        in: query
+        description: The endpoint where the result of the operation will be returned
+        required: false
+        type: string
+        allowEmptyValue: false
       responses:
         '200':
           description: OK
@@ -119,35 +124,35 @@ paths:
       deprecated: false
     put:
       tags:
-        - binary-classification-controller
+      - binary-classification-controller
       summary: Update a model
       description: 'Given a list of requirements, updates the model of the classifier for the given company'
       operationId: updateUsingPUT
       consumes:
-        - application/json
+      - application/json
       produces:
-        - '*/*'
+      - '*/*'
       parameters:
-        - name: company
-          in: query
-          description: Proprietary company of the model
-          required: true
-          type: string
-          allowEmptyValue: false
-          x-example: UPC
-        - name: property
-          in: query
-          description: Property of the classifier (requirement_type)
-          required: true
-          type: string
-          allowEmptyValue: false
-          x-example: requirement
-        - in: body
-          name: request
-          description: Request with the requirements to train and update the model
-          required: true
-          schema:
-            $ref: '#/definitions/Requirements list'
+      - name: company
+        in: query
+        description: Proprietary company of the model
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: UPC
+      - name: property
+        in: query
+        description: Property of the classifier (i.e. property value of the *requirement_type* field)
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: requirement
+      - in: body
+        name: request
+        description: Request with the requirements to train and update the model
+        required: true
+        schema:
+          $ref: '#/definitions/Requirements list'
       responses:
         '200':
           description: OK
@@ -164,7 +169,7 @@ paths:
       deprecated: false
     delete:
       tags:
-        - binary-classification-controller
+      - binary-classification-controller
       summary: Delete a model
       description: |-
         Given a **company** and a **property**, deletes the associated stored model. Additionally this method allows some variations:
@@ -172,14 +177,22 @@ paths:
         - If *company* = "ALL", removes all models of all companies (used as safe drop database).
       operationId: deleteModelUsingDELETE
       produces:
-        - '*/*'
+      - '*/*'
       parameters:
-        - in: body
-          name: request
-          description: request
-          required: true
-          schema:
-            $ref: '#/definitions/CompanyPropertyKey'
+      - name: company
+        in: query
+        description: Proprietary company of the model
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: UPC
+      - name: property
+        in: query
+        description: Property of the classifier (i.e. property value of the *requirement_type* field)
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: requirement
       responses:
         '200':
           description: Files deleted correctly
@@ -199,52 +212,52 @@ paths:
   /upc/classifier-component/multiclassifier/classify:
     post:
       tags:
-        - multilabel-classification-controller
+      - multilabel-classification-controller
       summary: Classify by domain
       description: 'Given a list of requirements, a company name and a domain of the company, classifies the list of requirements using the domain model. The result is a list of recommendations based on the classification results.'
       operationId: classifyUsingPOST_1
       consumes:
-        - application/json
+      - application/json
       produces:
-        - '*/*'
+      - '*/*'
       parameters:
-        - name: Model list
-          in: query
-          description: 'List of property values to generate models (if empty, all values are generated)'
-          required: false
-          type: array
-          items:
-            type: string
-          collectionFormat: multi
-          allowEmptyValue: false
-        - name: company
-          in: query
-          description: Company to which the model belong
-          required: true
+      - name: Model list
+        in: query
+        description: 'List of property values to generate models (if empty, all values are generated)'
+        required: false
+        type: array
+        items:
           type: string
-          allowEmptyValue: false
-          x-example: UPC
-        - name: context
-          in: query
-          description: Apply contextual information analysis?
-          required: false
-          type: boolean
-          default: false
-          allowEmptyValue: false
-          x-example: false
-        - name: property
-          in: query
-          description: Property of the classifier
-          required: true
-          type: string
-          allowEmptyValue: false
-          x-example: requirement
-        - in: body
-          name: request
-          description: Request with the requirements to train
-          required: true
-          schema:
-            $ref: '#/definitions/Classify requirements list'
+        collectionFormat: multi
+        allowEmptyValue: false
+      - name: company
+        in: query
+        description: Company to which the model belong
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: UPC
+      - name: context
+        in: query
+        description: 'Whether to apply contextual information analysis or not. If positive, contextual information (i.e. requirements'' position order and hierarchical structure) is used to apply the same tag during the classification process to all members belonging to a same document list structure.'
+        required: false
+        type: boolean
+        default: false
+        allowEmptyValue: false
+        x-example: false
+      - name: property
+        in: query
+        description: Property of the classifier
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: requirement
+      - in: body
+        name: request
+        description: Request with the requirements to train
+        required: true
+        schema:
+          $ref: '#/definitions/Classify requirements list'
       responses:
         '200':
           description: OK
@@ -262,50 +275,50 @@ paths:
   /upc/classifier-component/multiclassifier/model:
     post:
       tags:
-        - multilabel-classification-controller
+      - multilabel-classification-controller
       summary: Create multiple models
       description: "Given a list of requirements and a company name, multiple models are created based on the values of a given *property* which are set as a *requirementParts* field. Given a *requirementPart* object:\n\n- *id*: the *property* of the classifier (i.e. *reqDomains*)\n- *text*: a \\n separated list with the values of the *requirementPart* (i.e. the *property*)\n\nThis method results in a creation of a set of models, which are created as follows:\n\n- If *modelList* is neither null nor empty, a model is created per each value of *property* in *modelList*\n- Else if *modelList* is null or empty, a model is created per each possible value of *property* found in the dataset\n\n Each model is a sub-classifier evaluating whether a given requirement can be classified as a specific value of the *property* field.\n\nThis method is executed in an asynchronous way. As a response you will get an object with a single attribute id (check swagger response below) when the training has started. Once the execution is finished, you will get a response to the endpoint set at the *url* parameter. The format of the response is as follows: \n\n{\n\t\"message\":\"Response message\",\n\t\"id\": \"1562315038067_409\",\n\t\"code\": 200\n}\n\nThe 'id' field can be used to match the synchronous response of the request with the asynchronous response of the response. The 'code' field states the HTTP code of the request.\n\n**WARNING**: if no data is provided for a specific property value, no model will be created"
       operationId: testUsingPOST
       consumes:
-        - application/json
+      - application/json
       produces:
-        - '*/*'
+      - '*/*'
       parameters:
-        - name: company
-          in: query
-          description: Company to which the model belong
-          required: true
+      - name: company
+        in: query
+        description: Company to which the model belong
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: UPC
+      - name: modelList
+        in: query
+        description: 'List of property values to generate models (if empty, all values are generated)'
+        required: false
+        type: array
+        items:
           type: string
-          allowEmptyValue: false
-          x-example: UPC
-        - name: modelList
-          in: query
-          description: 'List of property values to generate models (if empty, all values are generated)'
-          required: false
-          type: array
-          items:
-            type: string
-          collectionFormat: multi
-          allowEmptyValue: false
-        - name: property
-          in: query
-          description: Property of the classifier
-          required: true
-          type: string
-          allowEmptyValue: false
-          x-example: requirement
-        - in: body
-          name: request
-          description: Request with the requirements to train
-          required: true
-          schema:
-            $ref: '#/definitions/Multiclassify requirements list'
-        - name: url
-          in: query
-          description: The endpoint where the result of the operation will be returned
-          required: false
-          type: string
-          allowEmptyValue: false
+        collectionFormat: multi
+        allowEmptyValue: false
+      - name: property
+        in: query
+        description: Property of the classifier
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: requirement
+      - in: body
+        name: request
+        description: Request with the requirements to train
+        required: true
+        schema:
+          $ref: '#/definitions/Multiclassify requirements list'
+      - name: url
+        in: query
+        description: The endpoint where the result of the operation will be returned
+        required: false
+        type: string
+        allowEmptyValue: false
       responses:
         '200':
           description: OK
@@ -322,7 +335,7 @@ paths:
       deprecated: false
     put:
       tags:
-        - multilabel-classification-controller
+      - multilabel-classification-controller
       summary: Update multiple models
       description: |-
         Given a list of requirements and a company name, a multidimensional classifier (i.e. multiple models) is updated based on the values of a given *property* which are set as a *requirementParts* field. Given a *requirementPart* object:
@@ -338,39 +351,39 @@ paths:
          Each model is a sub-classifier evaluating whether a given requirement can be classified as a specific value of the *property* field.
       operationId: updateUsingPUT_1
       consumes:
-        - application/json
+      - application/json
       produces:
-        - '*/*'
+      - '*/*'
       parameters:
-        - name: Model list
-          in: query
-          description: 'List of property values to update models (if empty, all values are generated)'
-          required: false
-          type: array
-          items:
-            type: string
-          collectionFormat: multi
-          allowEmptyValue: false
-        - name: company
-          in: query
-          description: Company to which the model belong
-          required: true
+      - name: Model list
+        in: query
+        description: 'List of property values to update models (if empty, all values are generated)'
+        required: false
+        type: array
+        items:
           type: string
-          allowEmptyValue: false
-          x-example: UPC
-        - name: property
-          in: query
-          description: Property of the classifier
-          required: true
-          type: string
-          allowEmptyValue: false
-          x-example: requirement
-        - in: body
-          name: request
-          description: Request with the requirements to train
-          required: true
-          schema:
-            $ref: '#/definitions/Multiclassify requirements list'
+        collectionFormat: multi
+        allowEmptyValue: false
+      - name: company
+        in: query
+        description: Company to which the model belong
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: UPC
+      - name: property
+        in: query
+        description: Property of the classifier
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: requirement
+      - in: body
+        name: request
+        description: Request with the requirements to train
+        required: true
+        schema:
+          $ref: '#/definitions/Multiclassify requirements list'
       responses:
         '200':
           description: OK
@@ -387,7 +400,7 @@ paths:
       deprecated: false
     delete:
       tags:
-        - multilabel-classification-controller
+      - multilabel-classification-controller
       summary: Delete multiple models
       description: |-
         Given a **company** and a **property**, delete the associated stored models for the given *property* as follows:
@@ -397,23 +410,31 @@ paths:
         - Else if *modelList* is null or empty, all models of the given *property* are deleted
       operationId: deleteUsingDELETE
       produces:
-        - '*/*'
+      - '*/*'
       parameters:
-        - name: modelList
-          in: query
-          description: 'List of property values to generate models (if empty, all values are generated)'
-          required: false
-          type: array
-          items:
-            type: string
-          collectionFormat: multi
-          allowEmptyValue: false
-        - in: body
-          name: request
-          description: request
-          required: true
-          schema:
-            $ref: '#/definitions/CompanyPropertyKey'
+      - name: company
+        in: query
+        description: Proprietary company of the model
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: UPC
+      - name: modelList
+        in: query
+        description: 'List of property values to generate models (if empty, all values are generated)'
+        required: false
+        type: array
+        items:
+          type: string
+        collectionFormat: multi
+        allowEmptyValue: false
+      - name: property
+        in: query
+        description: Property of the classifier (requirement_type)
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: requirement
       responses:
         '200':
           description: OK
@@ -429,26 +450,26 @@ paths:
   '/upc/classifier-component/multiclassifier/model/{property}':
     get:
       tags:
-        - multilabel-classification-controller
+      - multilabel-classification-controller
       summary: Get models from property
       description: 'Given a **company** and a **property**, returns a list of all models created for that multi-label property. Notice that if no data was provided for a specific value, no model has been created.'
       operationId: getMultilabelValuesUsingGET
       produces:
-        - '*/*'
+      - '*/*'
       parameters:
-        - name: company
-          in: query
-          description: Company to which the model belong
-          required: true
-          type: string
-          allowEmptyValue: false
-          x-example: UPC
-        - name: property
-          in: path
-          description: Property of the classifier
-          required: true
-          type: string
-          x-example: requirement
+      - name: company
+        in: query
+        description: Company to which the model belong
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: UPC
+      - name: property
+        in: path
+        description: Property of the classifier
+        required: true
+        type: string
+        x-example: requirement
       responses:
         '200':
           description: OK
@@ -466,55 +487,55 @@ paths:
   /upc/classifier-component/multiclassifier/train&test:
     post:
       tags:
-        - multilabel-classification-controller
+      - multilabel-classification-controller
       summary: Train and test by domain
       description: |
-        Returns the result of k cross-validation using the requirements recieved in the request and the model of the implicit company and PROPERTY-KEY+. Splits the requirements in k groups, trains a classifier for each group with all of the requirements recieved except the ones in the group and tests it with the requirements in the group.
+        Returns the result of k cross-validation using the requirements recieved in the request and the model of the implicit *company* and *property* (send as parameters in the request). Splits the requirements in k groups, trains a classifier for each group with all of the requirements recieved except the ones in the group and tests it with the requirements in the group.
         Returns the average of several statistics like the accuracy of the model
       operationId: trainAndTestUsingPOST_1
       consumes:
-        - application/json
+      - application/json
       produces:
-        - application/json
+      - application/json
       parameters:
-        - name: Model list
-          in: query
-          description: 'List of property values to generate models (if empty, all values are generated)'
-          required: false
-          type: array
-          items:
-            type: string
-          collectionFormat: multi
-          allowEmptyValue: false
-        - name: context
-          in: query
-          description: Apply contextual information analysis?
-          required: false
-          type: boolean
-          default: false
-          allowEmptyValue: false
-          x-example: false
-        - name: k
-          in: query
-          description: Number of tests
-          required: true
-          type: integer
-          format: int32
-          allowEmptyValue: false
-          x-example: 10
-        - name: property
-          in: query
-          description: Property of the classifier
-          required: true
+      - name: Model list
+        in: query
+        description: 'List of property values to generate models (if empty, all values are generated)'
+        required: false
+        type: array
+        items:
           type: string
-          allowEmptyValue: false
-          x-example: requirement
-        - in: body
-          name: request
-          description: Request with the requirements to test
-          required: true
-          schema:
-            $ref: '#/definitions/Multiclassify requirements list'
+        collectionFormat: multi
+        allowEmptyValue: false
+      - name: context
+        in: query
+        description: 'Whether to apply contextual information analysis or not. If positive, contextual information (i.e. requirements'' position order and hierarchical structure) is used to apply the same tag during the classification process to all members belonging to a same document list structure.'
+        required: false
+        type: boolean
+        default: false
+        allowEmptyValue: false
+        x-example: false
+      - name: k
+        in: query
+        description: Number of tests
+        required: true
+        type: integer
+        format: int32
+        allowEmptyValue: false
+        x-example: 10
+      - name: property
+        in: query
+        description: Property of the classifier
+        required: true
+        type: string
+        allowEmptyValue: false
+        x-example: requirement
+      - in: body
+        name: request
+        description: Request with the requirements to test
+        required: true
+        schema:
+          $ref: '#/definitions/Multiclassify requirements list'
       responses:
         '200':
           description: OK
@@ -532,44 +553,44 @@ paths:
   /upc/classifier-component/train&test:
     post:
       tags:
-        - binary-classification-controller
+      - binary-classification-controller
       summary: Train and test
       description: |
         Returns the result of k cross-validation using the requirements recieved in the request. Splits the requirements in k groups, trains a classifier for each group with all of the requirements recieved except the ones in the group and tests it with the requirements in the group.
         Returns the average of several statistics like the accuracy of the model
       operationId: trainAndTestUsingPOST
       consumes:
-        - application/json
+      - application/json
       produces:
-        - application/json
+      - application/json
       parameters:
-        - name: context
-          in: query
-          description: Apply contextual information analysis?
-          required: false
-          type: boolean
-          default: false
-          allowEmptyValue: false
-          x-example: false
-        - name: k
-          in: query
-          description: Number of tests
-          required: true
-          type: integer
-          format: int32
-          allowEmptyValue: false
-        - name: property
-          in: query
-          description: Property
-          required: false
-          type: string
-          allowEmptyValue: false
-        - in: body
-          name: request
-          description: Request with the requirements to test
-          required: true
-          schema:
-            $ref: '#/definitions/Requirements list'
+      - name: context
+        in: query
+        description: 'Whether to apply contextual information analysis or not. If positive, contextual information (i.e. requirements'' position order and hierarchical structure) is used to apply the same tag during the classification process to all members belonging to a same document list structure.'
+        required: false
+        type: boolean
+        default: false
+        allowEmptyValue: false
+        x-example: false
+      - name: k
+        in: query
+        description: Number of tests
+        required: true
+        type: integer
+        format: int32
+        allowEmptyValue: false
+      - name: property
+        in: query
+        description: Property of the classifier (i.e. property value of the *requirement_type* field)
+        required: false
+        type: string
+        allowEmptyValue: false
+      - in: body
+        name: request
+        description: Request with the requirements to test
+        required: true
+        schema:
+          $ref: '#/definitions/Requirements list'
       responses:
         '200':
           description: OK
@@ -617,18 +638,6 @@ definitions:
           $ref: '#/definitions/Classify Requirement'
     title: Classify requirements list
     description: A project reqs list
-  CompanyPropertyKey:
-    type: object
-    properties:
-      company:
-        type: string
-        example: UPC
-        description: Company
-      property:
-        type: string
-        example: requirement
-        description: Property of the classifier
-    title: CompanyPropertyKey
   ConfusionMatrixStats:
     type: object
     properties:
@@ -798,70 +807,70 @@ definitions:
       statusCode:
         type: string
         enum:
-          - '100'
-          - '101'
-          - '102'
-          - '103'
-          - '200'
-          - '201'
-          - '202'
-          - '203'
-          - '204'
-          - '205'
-          - '206'
-          - '207'
-          - '208'
-          - '226'
-          - '300'
-          - '301'
-          - '302'
-          - '303'
-          - '304'
-          - '305'
-          - '307'
-          - '308'
-          - '400'
-          - '401'
-          - '402'
-          - '403'
-          - '404'
-          - '405'
-          - '406'
-          - '407'
-          - '408'
-          - '409'
-          - '410'
-          - '411'
-          - '412'
-          - '413'
-          - '414'
-          - '415'
-          - '416'
-          - '417'
-          - '418'
-          - '419'
-          - '420'
-          - '421'
-          - '422'
-          - '423'
-          - '424'
-          - '426'
-          - '428'
-          - '429'
-          - '431'
-          - '451'
-          - '500'
-          - '501'
-          - '502'
-          - '503'
-          - '504'
-          - '505'
-          - '506'
-          - '507'
-          - '508'
-          - '509'
-          - '510'
-          - '511'
+        - '100'
+        - '101'
+        - '102'
+        - '103'
+        - '200'
+        - '201'
+        - '202'
+        - '203'
+        - '204'
+        - '205'
+        - '206'
+        - '207'
+        - '208'
+        - '226'
+        - '300'
+        - '301'
+        - '302'
+        - '303'
+        - '304'
+        - '305'
+        - '307'
+        - '308'
+        - '400'
+        - '401'
+        - '402'
+        - '403'
+        - '404'
+        - '405'
+        - '406'
+        - '407'
+        - '408'
+        - '409'
+        - '410'
+        - '411'
+        - '412'
+        - '413'
+        - '414'
+        - '415'
+        - '416'
+        - '417'
+        - '418'
+        - '419'
+        - '420'
+        - '421'
+        - '422'
+        - '423'
+        - '424'
+        - '426'
+        - '428'
+        - '429'
+        - '431'
+        - '451'
+        - '500'
+        - '501'
+        - '502'
+        - '503'
+        - '504'
+        - '505'
+        - '506'
+        - '507'
+        - '508'
+        - '509'
+        - '510'
+        - '511'
       statusCodeValue:
         type: integer
         format: int32

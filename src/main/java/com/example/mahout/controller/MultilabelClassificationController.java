@@ -126,7 +126,10 @@ public class MultilabelClassificationController {
                                        @ApiParam(value = "Property of the classifier", required = true, example = "requirement") @RequestParam("property") String property,
                                        @ApiParam(value = "List of property values to generate models (if empty, all values are generated)")
                                            @RequestParam(value = "Model list", required = false) List<String> modelList,
-                                       @ApiParam(value = "Apply contextual information analysis?")
+                                       @ApiParam(value = "Whether to apply contextual information analysis or not. If positive, contextual information (i.e. " +
+                                               "requirements' position order and hierarchical structure) is used to apply the same " +
+                                               "tag during the classification process to all members belonging to a same " +
+                                               "document list structure.")
                                            @RequestParam(value = "context", defaultValue = "false", required = false) Boolean context
                          ) throws Exception {
         return classificationService.classifyByDomain(new RequirementList(request),
@@ -139,7 +142,7 @@ public class MultilabelClassificationController {
     @RequestMapping(value = "train&test", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "Train and test by domain",
             notes = "Returns the result of k cross-validation using the requirements recieved in the request and the model" +
-                    " of the implicit company and PROPERTY-KEY+. Splits the requirements in k groups, trains a classifier for each group with " +
+                    " of the implicit *company* and *property* (send as parameters in the request). Splits the requirements in k groups, trains a classifier for each group with " +
                     "all of the requirements recieved except the ones in the group and tests it with the requirements in the group.\n" +
                     "Returns the average of several statistics like the accuracy of the model\n")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = DomainStats.class)})
@@ -148,7 +151,10 @@ public class MultilabelClassificationController {
                                     @ApiParam(value = "Property of the classifier", required = true, example = "requirement") @RequestParam("property") String property,
                                     @ApiParam(value = "List of property values to generate models (if empty, all values are generated)")
                                         @RequestParam(value = "Model list", required = false) List<String> modelList,
-                                    @ApiParam(value = "Apply contextual information analysis?") @RequestParam(value = "context", defaultValue = "false", required = false) Boolean context) throws Exception {
+                                    @ApiParam(value = "Whether to apply contextual information analysis or not. If positive, contextual information (i.e. " +
+                                            "requirements' position order and hierarchical structure) is used to apply the same " +
+                                            "tag during the classification process to all members belonging to a same " +
+                                            "document list structure.") @RequestParam(value = "context", defaultValue = "false", required = false) Boolean context) throws Exception {
         System.out.println("Starting train and test functionality");
         return classificationService.trainAndTestByDomain(new RequirementList(request, property), n, property, modelList, context);
     }
