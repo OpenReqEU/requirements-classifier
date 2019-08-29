@@ -79,8 +79,10 @@ public class BinaryClassificationController {
                     "- If *company* = \"ALL\", removes all models of all companies (used as safe drop database).")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "Files deleted correctly", response = String.class),
             @ApiResponse(code = 404, message = "Model(s) not found", response = String.class)})
-    public ResponseEntity deleteModel(@RequestBody CompanyPropertyKey request) throws Exception {
+    public ResponseEntity deleteModel(@ApiParam(value = "Property of the classifier (requirement_type)", required = true, example = "requirement") @RequestParam("property") String property,
+                                      @ApiParam(value = "Proprietary company of the model", required = true, example = "UPC") @RequestParam("company") String enterpriseName) throws Exception {
 
+        CompanyPropertyKey request = new CompanyPropertyKey(enterpriseName, property);
         String msg = classificationService.delete(request);
         return new ResponseEntity<>(msg, msg.equals("Model(s) not found") ? HttpStatus.NOT_FOUND : HttpStatus.OK);
     }

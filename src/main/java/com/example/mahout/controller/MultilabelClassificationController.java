@@ -82,10 +82,12 @@ public class MultilabelClassificationController {
                     "- If *modelList* is neither null nor empty, a model is deleted per each value of *property* in *modelList*\n\n" +
                     "- Else if *modelList* is null or empty, all models of the given *property* are deleted")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = String.class)})
-    public ResponseEntity delete(@RequestBody CompanyPropertyKey request,
+    public ResponseEntity delete(@ApiParam(value = "Property of the classifier (requirement_type)", required = true, example = "requirement") @RequestParam("property") String property,
+                                 @ApiParam(value = "Proprietary company of the model", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
                        @ApiParam(value = "List of property values to generate models (if empty, all values are generated)")
                        @RequestParam(value = "modelList", required = false) List<String> modelList) throws Exception {
-       String msg = classificationService.deleteMulti(request, modelList);
+        CompanyPropertyKey request = new CompanyPropertyKey(enterpriseName, property);
+        String msg = classificationService.deleteMulti(request, modelList);
         return new ResponseEntity<>(msg, msg.equals("Model(s) not found") ? HttpStatus.NOT_FOUND : HttpStatus.OK);
 
     }

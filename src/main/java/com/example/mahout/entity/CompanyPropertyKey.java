@@ -13,6 +13,11 @@ public class CompanyPropertyKey implements Serializable {
     @ApiModelProperty(value = "Property of the classifier", example = "requirement")
     String property;
 
+    public CompanyPropertyKey(String company, String property) {
+        this.company = company;
+        this.property = property;
+    }
+
     public String getCompany() {
         return company;
     }
