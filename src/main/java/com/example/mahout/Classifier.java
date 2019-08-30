@@ -5,7 +5,6 @@ import com.example.mahout.DAO.CompanyModelDAOMySQL;
 import com.example.mahout.entity.CompanyModel;
 import com.example.mahout.entity.Requirement;
 import com.example.mahout.entity.ResultId;
-import com.example.mahout.service.AsyncService;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Multiset;
 import org.apache.commons.io.FilenameUtils;
@@ -28,9 +27,6 @@ import org.apache.mahout.math.RandomAccessSparseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
 import org.apache.mahout.vectorizer.TFIDF;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,6 +43,7 @@ import java.util.Map;
 
 public class Classifier {
 
+    public static final String TMP_FILES = "./tmpFiles/";
     private CompanyModelDAO companyModelDAO = new CompanyModelDAOMySQL();
     private String modelPath;
     private String labelindexPath;
@@ -55,7 +52,7 @@ public class Classifier {
 
 
     public Classifier() throws SQLException {
-
+        //Default constructor for the DAO initialization
     }
 
     private static Map<String, Integer> readDictionary(Configuration conf, Path dictionnaryPath) {
@@ -81,18 +78,18 @@ public class Classifier {
         byte[] dictionary_file_bytes = companyModel.getDictionary();
         byte[] frequencies_file_bytes = companyModel.getFrequencies();
 
-        Files.createDirectories(Paths.get("./tmpFiles/" + resultId.getId()));
+        Files.createDirectories(Paths.get(TMP_FILES + resultId.getId()));
 
-        java.nio.file.Path tmp_model_file = Paths.get("./tmpFiles/" + resultId.getId() + "/naiveBayesModel.bin");
+        java.nio.file.Path tmp_model_file = Paths.get(TMP_FILES + resultId.getId() + "/naiveBayesModel.bin");
         Files.write(tmp_model_file, model_file_bytes);
 
-        java.nio.file.Path tmp_labelindex_file = Paths.get("./tmpFiles/" + resultId.getId() + "/labelindex");
+        java.nio.file.Path tmp_labelindex_file = Paths.get(TMP_FILES + resultId.getId() + "/labelindex");
         Files.write(tmp_labelindex_file, labelindex_file_bytes);
 
-        java.nio.file.Path tmp_dictionary_file = Paths.get("./tmpFiles/"+ resultId.getId() + "/dictionary.file-0");
+        java.nio.file.Path tmp_dictionary_file = Paths.get(TMP_FILES+ resultId.getId() + "/dictionary.file-0");
         Files.write(tmp_dictionary_file, dictionary_file_bytes);
 
-        java.nio.file.Path tmp_frequencies_file = Paths.get("./tmpFiles/" + resultId.getId()+ "/df-count");
+        java.nio.file.Path tmp_frequencies_file = Paths.get(TMP_FILES + resultId.getId()+ "/df-count");
         Files.write(tmp_frequencies_file, frequencies_file_bytes);
 
         modelPath = FilenameUtils.getPath(tmp_model_file.toString());
@@ -117,7 +114,7 @@ public class Classifier {
         dictionary.delete();
         frequencies.delete();
         try {
-            Files.delete(Paths.get("./tmpFiles/" + resultId.getId()));
+            Files.delete(Paths.get(TMP_FILES + resultId.getId()));
         } catch (IOException e) {
             e.printStackTrace();
         }
