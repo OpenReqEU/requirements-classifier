@@ -2,11 +2,9 @@ package com.example.mahout;
 
 import com.example.mahout.entity.Requirement;
 import com.example.mahout.entity.RequirementList;
-import com.example.mahout.entity.siemens.SiemensRequirement;
-import com.example.mahout.entity.siemens.SiemensRequirementList;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.json.JSONObject;
 import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
@@ -19,11 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.io.IOException;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(SpringRunner.class)
@@ -37,38 +31,34 @@ public class ControllerTest {
 
     @Test
     public void testB() throws Exception {
-//        this.mockMvc.perform(get("/upc/classifier-component/train")).andDo(print()).andExpect(status().isOk())
-//                .andExpect(content().string(containsString("OK")));;
 
         RequirementList requirementList = generateRequirementDataset(10);
 
-        this.mockMvc.perform(post("/upc/classifier-component/train")
+        this.mockMvc.perform(post("/upc/classifier-component/model")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(toJson(requirementList))
                 .param("company", "UPC")
-                .param("property", "DEF"))
+                .param("property", "DEF")
+                .param("url", "http://google.com"))
                 .andExpect(status().isOk());
     }
 
     @Test
+    @Ignore
     public void testC() throws Exception {
-//        this.mockMvc.perform(get("/upc/classifier-component/train")).andDo(print()).andExpect(status().isOk())
-//                .andExpect(content().string(containsString("OK")));;
-
         RequirementList requirementList = generateRequirementDataset(10);
 
         this.mockMvc.perform(post("/upc/classifier-component/classify")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(toJson(requirementList))
                 .param("company", "UPC")
-                .param("property", "DEF"))
+                .param("property", "DEF")
+                .param("url", "http://google.com"))
                 .andExpect(status().isOk());
     }
 
     @Test
     public void testA() throws Exception {
-//        this.mockMvc.perform(get("/upc/classifier-component/train")).andDo(print()).andExpect(status().isOk())
-//                .andExpect(content().string(containsString("OK")));;
 
         RequirementList requirementList = generateRequirementDataset(10);
 
@@ -76,7 +66,8 @@ public class ControllerTest {
             this.mockMvc.perform(post("/upc/classifier-component/train&test")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(toJson(requirementList))
-                    .param("k", "1"))
+                    .param("k", "1")
+                    .param("property", "DEF"))
                     .andExpect(status().isOk());
         } catch (Exception e) {
             //TODO handle exception
@@ -84,39 +75,13 @@ public class ControllerTest {
     }
 
     @Test
-    public void testD() throws Exception {
-//        this.mockMvc.perform(get("/upc/classifier-component/train")).andDo(print()).andExpect(status().isOk())
-//                .andExpect(content().string(containsString("OK")));;
-
-        RequirementList requirementList = generateRequirementDataset(10);
-
-        this.mockMvc.perform(post("/upc/classifier-component/update")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(requirementList))
-                .param("company", "UPC")
-                .param("property", "DEF"))
-                .andExpect(status().isOk());
-    }
-
-    @Test
     public void testE() throws Exception {
 
-        this.mockMvc.perform(post("/upc/classifier-component/delete")
+        this.mockMvc.perform(delete("/upc/classifier-component/model")
                 .contentType(MediaType.APPLICATION_JSON)
                 .param("company", "UPC")
                 .param("property", "DEF"))
                 .andExpect(status().isNotFound());
-    }
-
-    @Test
-    public void testF() throws Exception {
-
-        SiemensRequirementList requirementList = generateSiemensDataset(10);
-
-        this.mockMvc.perform(post("/upc/classifier-component/parse")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(requirementList)))
-                .andExpect(status().isOk());
     }
 
     private String[] sentences =
@@ -149,31 +114,11 @@ public class ControllerTest {
 
             //Text
             r.setText(sentences[i%sentences.length]);
+            r.setDocumentPositionOrder(i+1);
 
             requirementList.getRequirements().add(r);
         }
 
-        return requirementList;
-    }
-
-    private SiemensRequirementList generateSiemensDataset(int n) {
-        SiemensRequirementList requirementList = new SiemensRequirementList();
-        String reqType1 = "DEF";
-        String reqType2 = "Prose";
-        for (int i = 0; i < n; ++i) {
-            SiemensRequirement siemensRequirement = new SiemensRequirement();
-            siemensRequirement.setToolId(String.valueOf(i));
-            if (i % 2 == 0) {
-                siemensRequirement.setReqType(reqType1);
-                siemensRequirement.setHeading(sentences[i%sentences.length]);
-                siemensRequirement.setText("");
-            } else {
-                siemensRequirement.setReqType(reqType2);
-                siemensRequirement.setText(sentences[i%sentences.length]);
-                siemensRequirement.setHeading("");
-            }
-            requirementList.getReqs().add(siemensRequirement);
-        }
         return requirementList;
     }
 
