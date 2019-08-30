@@ -92,8 +92,9 @@ public class Stats implements Serializable {
 
         //stats evaluation
         accuracy = 100.00 * (true_negatives + true_positives) / recommendationList.getRecommendations().size();
-        reliability = ( true_negatives / (true_negatives + false_negatives)
-                + true_positives / (true_positives + false_positives)) * 100.00 / 2;
+        double a = true_negatives + false_negatives > 0 ? true_negatives / (true_negatives + false_negatives) : 0;
+        double b = true_positives + false_positives > 0 ? true_positives / (true_positives + false_positives) : 0;
+        reliability = (a + b) * 100.00 / 2;
         //TODO
 
     }

@@ -12,14 +12,13 @@ import org.apache.commons.io.FileUtils;
 import org.apache.mahout.common.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.io.*;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -27,16 +26,21 @@ import java.util.stream.Collectors;
 @Service
 public class ClassificationService {
 
+    public static final String SEQ_FILES = "./seqFiles/";
+    public static final String TEST = "/test";
+    public static final String BIN_BASH = "/bin/bash";
+    public static final String CONFIG_ENVIRONMENT_TXT = "./config/environment.txt";
+
     private static CompanyModelDAOMySQL fileModelSQL;
 
 
     @Autowired
     private DataService dataService;
 
-    public HashMap<String, Double> testOne(List<Requirement> reqToTrain, List<Requirement> reqToTest, String enterpriseName, int test_num) throws Exception {
+    public Map<String, Double> testOne(List<Requirement> reqToTrain, List<Requirement> reqToTest, String enterpriseName, int test_num) throws Exception {
         System.out.println("Testing test set number " + test_num);
 
-        String pathToSeq = "./seqFiles/" + enterpriseName + "/test" + test_num;
+        String pathToSeq = SEQ_FILES + enterpriseName + TEST + test_num;
 
         List<Requirement> reqToTrainFiltered = dataService.removeHeaders(reqToTrain);
         List<Requirement> reqToTestFiltered = dataService.removeHeaders(reqToTest);
@@ -45,30 +49,31 @@ public class ClassificationService {
         ToSeqFile.ReqToSeq(reqToTrainFiltered,pathToSeq);
 
         /*Create the process and execute it in order to train mahout and get the results */
-        ProcessBuilder pb_upload_files =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
-        ProcessBuilder pb_generate_vectors =  new ProcessBuilder("/bin/bash", "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
-        ProcessBuilder pb_train =  new ProcessBuilder("/bin/bash", "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
-        ProcessBuilder pb_download_dictionary =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/dictionary.file-0 ./tmpFiles/"+enterpriseName +"/test"+test_num+"/dictionary.file-0");
-        ProcessBuilder pb_download_frequencies =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./tmpFiles/"+enterpriseName +"/test"+test_num+"/df-count");
-        ProcessBuilder pb_upload_test_set =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -put ./tmpFiles/"+enterpriseName+"/test"+test_num + "/testSet /"+enterpriseName+"/testSet");
-        ProcessBuilder pb_test =  new ProcessBuilder("/bin/bash", "-c", "$MAHOUT_HOME/bin/mahout testnb -i /"+enterpriseName+"/testSet -l /"+enterpriseName+"/labelindex -m /"+enterpriseName+"/model -ow -o /" + enterpriseName+"/results");
-        ProcessBuilder pb_delete_hadoop_files = new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
+        ProcessBuilder pb_upload_files =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
+        ProcessBuilder pb_generate_vectors =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
+        ProcessBuilder pb_train =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
+        ProcessBuilder pb_download_dictionary =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/dictionary.file-0 ./tmpFiles/"+enterpriseName +"/test"+test_num+"/dictionary.file-0");
+        ProcessBuilder pb_download_frequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./tmpFiles/"+enterpriseName +"/test"+test_num+"/df-count");
+        ProcessBuilder pb_upload_test_set =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put ./tmpFiles/"+enterpriseName+"/test"+test_num + "/testSet /"+enterpriseName+"/testSet");
+        ProcessBuilder pb_test =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout testnb -i /"+enterpriseName+"/testSet -l /"+enterpriseName+"/labelindex -m /"+enterpriseName+"/model -ow -o /" + enterpriseName+"/results");
+        ProcessBuilder pb_delete_hadoop_files = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
 
 
         /* Set the enviroment configuration */
-        BufferedReader environmentFile = new BufferedReader(new FileReader(new File("./config/environment.txt")));
-        String line;
-        while ((line = environmentFile.readLine()) != null) {
-            String env_var[] = line.split(",");
-            pb_upload_files.environment().put(env_var[0],env_var[1]);
-            pb_generate_vectors.environment().put(env_var[0],env_var[1]);
-            pb_train.environment().put(env_var[0],env_var[1]);
-            pb_download_dictionary.environment().put(env_var[0],env_var[1]);
-            pb_download_frequencies.environment().put(env_var[0],env_var[1]);
-            pb_upload_test_set.environment().put(env_var[0],env_var[1]);
-            pb_test.environment().put(env_var[0],env_var[1]);
-            pb_delete_hadoop_files.environment().put(env_var[0],env_var[1]);
+        try (BufferedReader environmentFile = new BufferedReader(new FileReader(new File(CONFIG_ENVIRONMENT_TXT)))) {
+            String line;
+            while ((line = environmentFile.readLine()) != null) {
+                String env_var[] = line.split(",");
+                pb_upload_files.environment().put(env_var[0], env_var[1]);
+                pb_generate_vectors.environment().put(env_var[0], env_var[1]);
+                pb_train.environment().put(env_var[0], env_var[1]);
+                pb_download_dictionary.environment().put(env_var[0], env_var[1]);
+                pb_download_frequencies.environment().put(env_var[0], env_var[1]);
+                pb_upload_test_set.environment().put(env_var[0], env_var[1]);
+                pb_test.environment().put(env_var[0], env_var[1]);
+                pb_delete_hadoop_files.environment().put(env_var[0], env_var[1]);
 
+            }
         }
 
         System.out.println("Process created and configured");
@@ -118,12 +123,12 @@ public class ClassificationService {
 
         System.out.println("Uploading testSet");
         Process upload_test_set = pb_upload_test_set.start();
-        int exit_upload_test_set = upload_test_set.waitFor();
+        upload_test_set.waitFor();
         System.out.println("Done");
 
         System.out.println("Testing model");
         Process test = pb_test.start();
-        int exit_test = train.waitFor();
+        train.waitFor();
         BufferedReader output_error_test = new BufferedReader(new InputStreamReader(test.getErrorStream()));
         System.out.println("Done");
 
@@ -131,7 +136,7 @@ public class ClassificationService {
         System.out.println("Getting stats");
         StringBuilder builder = new StringBuilder();
         StringBuilder positivess_negatives_builder= new StringBuilder();
-        String line2 = null;
+        String line2;
         while ( (line2 = output_error_test.readLine()) != null) {
             if (line2.contains("Kappa") || line2.contains("Accuracy") || line2.contains("Reliability") ||
                     line2.contains("Weighted"))
@@ -153,15 +158,10 @@ public class ClassificationService {
 
         System.out.println("Deleting hadoop files");
         Process delete_hadoop_files = pb_delete_hadoop_files.start();
-        int exit_delete_hdfs_files = delete_hadoop_files.waitFor();
+        delete_hadoop_files.waitFor();
         System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getErrorStream()))));
         System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getInputStream()))));
         System.out.println("Done");
-
-        //if (exit_upload == 0 && exit_generate_vectors == 0 && exit_train == 0 && exit_dw_dictionary == 0 && exit_dw_frequencies == 0 && exit_test == 0 && exit_delete_hdfs_files == 0)
-        /*Get th
-        e output of the process*/
-        BufferedReader output = new BufferedReader(new InputStreamReader(test.getInputStream()));
 
         return dataService.applyStats(reqToTrain, reqToTrainFiltered, reqToTest, reqToTestFiltered, dataService.getStats(statistics, positives_negatives_matrix));
 
@@ -170,7 +170,6 @@ public class ClassificationService {
 
     public Stats trainAndTest(RequirementList request, String property, int n, Boolean context) throws Exception {
         String enterpriseName = "train_test";
-//        JSONArray reqToTest = body.getJSONArray("requirements");
 
         /* Preprocess data */
         List<Requirement> reqToTest = dataService.preprocess(request.getRequirements());
@@ -207,43 +206,6 @@ public class ClassificationService {
             partialStats.add(new Stats(recommendations, test, property));
         }
 
-        /* Execute all tests one by one */
-        /* ArrayList<String> values_keys = new ArrayList<>();
-        values_keys.addAll(total_results.keySet());
-        for (int i = 0; i < trainSets.size(); i++) {
-            HashMap<String, Double> tmp_results = testOne(trainSets.get(i), testSets.get(i), enterpriseName, i);
-            System.out.println("Done with test set number: "+i);
-
-            for (int j = 0; j < values_keys.size(); j++) {
-                String key = values_keys.get(j);
-                double tmp_value = total_results.get(key);
-                tmp_value += tmp_results.get(key);
-                total_results.put(key, tmp_value);
-            }
-            System.out.println("Partial results for test number "+i+":" +
-                    "Kappa: " + tmp_results.get("kappa") +
-                    "\naccuracy: " + tmp_results.get("accuracy") +
-                    "\nreliability: " + tmp_results.get("reliability") +
-                    "\nreliability_std_deviation: " + tmp_results.get("reliability_std_deviation") +
-                    "\nweighted precision: " + tmp_results.get("weighted_precision") +
-                    "\nweighted recall: " + tmp_results.get("weighted_recall") +
-                    "\nweighted f1 score: " + tmp_results.get("weighted_f1_score"));
-
-            System.out.println("Partial results for " + (i+1) + "tests computed\n");
-        }
-
-        for (int i = 0; i < total_results.size(); i++) {
-            String key = values_keys.get(i);
-            if(key.equals("true_positives") || key.equals("false_positives") || key.equals("false_negatives") || key.equals("true_negatives")) {
-                total_results.put(values_keys.get(i), total_results.get(values_keys.get(i)));
-            }
-            else {
-                double d = total_results.get(values_keys.get(i));
-                d = n > 0 ? d / n : 0;
-                total_results.put(values_keys.get(i), d);
-            }
-        }
-        */
         System.out.println("Total results calculated");
 
         Stats result = new Stats(total_results.get("kappa"), total_results.get("accuracy"), total_results.get("reliability"),
@@ -292,7 +254,6 @@ public class ClassificationService {
 
     public void train(RequirementList request, String property, String enterpriseName) throws Exception {
         /* Parse the body of the request */
-//        JSONObject body = new JSONObject(request);
         List<Requirement> reqToTrain = dataService.removeHeaders(dataService.preprocess(request.getRequirements()));
 
         fileModelSQL = new CompanyModelDAOMySQL();
@@ -304,14 +265,14 @@ public class ClassificationService {
         ToSeqFile.ReqToSeq(reqToTrain,pathToSeq);
 
         /*Create the process and execute it in order to train mahout and get the results */
-        ProcessBuilder pb_upload_files =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
-        ProcessBuilder pb_generate_vectors =  new ProcessBuilder("/bin/bash", "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
-        ProcessBuilder pb_train =  new ProcessBuilder("/bin/bash", "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
-        ProcessBuilder pb_download_model =  new ProcessBuilder("/bin/bash", "-c", "mkdir -p ./data/"+enterpriseName+" && $HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/model ./data/"+enterpriseName+"/");
-        ProcessBuilder pb_download_labelindex =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
-        ProcessBuilder pb_download_dictionary =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/dictionary.file-0 ./data/"+enterpriseName+"/dictionary.file-0");
-        ProcessBuilder pb_download_frequencies =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./data/"+enterpriseName+"/df-count");
-        ProcessBuilder pb_delete_hadoop_files = new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
+        ProcessBuilder pb_upload_files =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
+        ProcessBuilder pb_generate_vectors =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
+        ProcessBuilder pb_train =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
+        ProcessBuilder pb_download_model =  new ProcessBuilder(BIN_BASH, "-c", "mkdir -p ./data/"+enterpriseName+" && $HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/model ./data/"+enterpriseName+"/");
+        ProcessBuilder pb_download_labelindex =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
+        ProcessBuilder pb_download_dictionary =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/dictionary.file-0 ./data/"+enterpriseName+"/dictionary.file-0");
+        ProcessBuilder pb_download_frequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./data/"+enterpriseName+"/df-count");
+        ProcessBuilder pb_delete_hadoop_files = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
 
 
         /* Set the enviroment configuration */
@@ -376,12 +337,7 @@ public class ClassificationService {
         System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getErrorStream()))));
 
 
-        if (exit_train != 0)
-            System.out.println(dataService.getMessage(error));
-        else if(exit_upload != 0) {
-            BufferedReader error2 = new BufferedReader(new InputStreamReader(upload_files.getErrorStream()));
-            System.out.println(dataService.getMessage(error2));
-        }
+        exitProcess(upload_files, exit_upload, exit_train, error);
 
         /* Check if all went correctly*/
         if (exit_upload == 0 && exit_generate_vectors == 0 && exit_train == 0 && exit_dw_model == 0
@@ -420,7 +376,6 @@ public class ClassificationService {
     public RecommendationList classify(RequirementList request, String property, String enterpriseName, Boolean context) throws Exception {
 
         Document document = new Document(request.getRequirements());
-        //List<Requirement> contextualRequirements = document.getMarkedItems();
         List<Requirement> requirements = dataService.removeHeaders(dataService.preprocess(request.getRequirements()));
 
         Classifier classifier = new Classifier();
@@ -432,19 +387,7 @@ public class ClassificationService {
         /* Classify the requirements with the model of the company */
         ArrayList<Pair<String, Pair<String, Double>>> recomendations = classifier.classify(enterpriseName, requirements, property,
                 resultId);
-//        List<Recommendation> list = new ArrayList<>();
         HashMap<String, Recommendation> recommendationMap = new HashMap<>();
-
-        /*for (Requirement r : contextualRequirements) {
-            if (r.getRequirement_type().equals("Prose")) {
-                Recommendation recomendation = new Recommendation();
-                recomendation.setRequirement(r.getId());
-                recomendation.setRequirement_type("Prose");
-                recomendation.setConfidence(100.0);
-                if (!recommendationMap.containsKey(r.getId()))
-                    recommendationMap.put(r.getId(), recomendation);
-            }
-        }*/
 
         for(int i = 0; i < recomendations.size(); ++i) {
             Recommendation recomendation = new Recommendation();
@@ -456,7 +399,6 @@ public class ClassificationService {
                 recommendationMap.put(element.getFirst(), recomendation);
         }
 
-        //TODO modify here all items that belong to the same list
         if (context) {
             for (Recommendation r : recommendationMap.values()) {
                 List<Requirement> children = document.getChildren(r.getRequirement());
@@ -465,15 +407,6 @@ public class ClassificationService {
             }
         }
 
-//        for (Requirement r : request.getRequirements()) {
-//            if (r.getRequirement_type()!= null && r.getRequirement_type().equals("Heading")) {
-//                Recommendation recommendation = new Recommendation();
-//                recommendation.setRequirement(r.getId());
-//                recommendation.setRequirement_type("Prose");
-//                recommendation.setConfidence(100.0);
-//                list.add(recommendation);
-//            }
-//        }
         RecommendationList allRecommendations = new RecommendationList();
         allRecommendations.setRecommendations(new ArrayList(recommendationMap.values()));
         return allRecommendations;
@@ -482,7 +415,6 @@ public class ClassificationService {
     private void markListWithMostCommonTag(List<Requirement> children, HashMap<String, Recommendation> recommendationMap,
                                            String property) {
 
-        //TODO copy of original requirement to analyze if list item
         if (!areBulletList(children)) return;
 
         Integer positiveTag = 0;
@@ -498,7 +430,6 @@ public class ClassificationService {
 
         for (Requirement r : children) {
             recommendationMap.get(r.getId()).setRequirement_type(tag);
-            //recommendationMap.get(r.getId()).setConfidence(100.00);
         }
 
     }
@@ -524,7 +455,7 @@ public class ClassificationService {
         return false;
     }
 
-    public String updateMulti(RequirementList request, String property, String enterpriseName, List<String> modelList) throws Exception {
+    public void updateMulti(RequirementList request, String property, String enterpriseName, List<String> modelList) throws Exception {
         HashMap<String, RequirementList> domainRequirementsMap = dataService.mapByDomain(request, property);
         for (String domain : domainRequirementsMap.keySet()) {
             if (!domain.trim().isEmpty()) {
@@ -533,7 +464,6 @@ public class ClassificationService {
             }
         }
         System.out.println("Done");
-        return "Update succsesfull";
     }
 
     private void updateDomainModel(RequirementList request, RequirementList requirementList, String enterpriseName, String property, String domain) throws Exception {
@@ -561,14 +491,14 @@ public class ClassificationService {
             ToSeqFile.ReqToSeq(reqToTrain, pathToSeq);
 
             /*Create the process and execute it in order to train mahout and get the results */
-            ProcessBuilder pb_upload_files =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
-            ProcessBuilder pb_generate_vectors =  new ProcessBuilder("/bin/bash", "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
-            ProcessBuilder pb_train =  new ProcessBuilder("/bin/bash", "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
-            ProcessBuilder pb_download_model =  new ProcessBuilder("/bin/bash", "-c", "mkdir -p ./data/"+enterpriseName+" && $HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/model ./data/"+enterpriseName+"/");
-            ProcessBuilder pb_download_labelindex =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
-            ProcessBuilder pb_download_dictionary =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/dictionary.file-0 ./data/"+enterpriseName+"/dictionary.file-0");
-            ProcessBuilder pb_download_frequencies =  new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./data/"+enterpriseName+"/df-count");
-            ProcessBuilder pb_delete_hadoop_files = new ProcessBuilder("/bin/bash", "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
+            ProcessBuilder pb_upload_files =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
+            ProcessBuilder pb_generate_vectors =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
+            ProcessBuilder pb_train =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
+            ProcessBuilder pb_download_model =  new ProcessBuilder(BIN_BASH, "-c", "mkdir -p ./data/"+enterpriseName+" && $HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/model ./data/"+enterpriseName+"/");
+            ProcessBuilder pb_download_labelindex =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
+            ProcessBuilder pb_download_dictionary =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/dictionary.file-0 ./data/"+enterpriseName+"/dictionary.file-0");
+            ProcessBuilder pb_download_frequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./data/"+enterpriseName+"/df-count");
+            ProcessBuilder pb_delete_hadoop_files = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
 
 
             /* Set the enviroment configuration */
@@ -613,12 +543,7 @@ public class ClassificationService {
             Process delete_hadoop_files = pb_delete_hadoop_files.start();
             int exit_delete_hdfs_files = delete_hadoop_files.waitFor();
 
-            if (exit_train != 0)
-                System.out.println(dataService.getMessage(error));
-            else if(exit_upload != 0) {
-                BufferedReader error2 = new BufferedReader(new InputStreamReader(upload_files.getErrorStream()));
-                System.out.println(dataService.getMessage(error2));
-            }
+            exitProcess(upload_files, exit_upload, exit_train, error);
 
             /* Check if everything went well */
             if (exit_upload == 0 && exit_generate_vectors == 0 && exit_train == 0 && exit_dw_model == 0
@@ -653,10 +578,19 @@ public class ClassificationService {
             /*Deleting the directory containing the data:*/
             FileUtils.deleteDirectory(new File("./data" + enterpriseName));
 
-            return "Update succsesfull";
+            return "Update successful";
         }
         else {
             return "Error, company " + enterpriseName + " doesn't have any classifier for the property " + property + " registered";
+        }
+    }
+
+    private void exitProcess(Process upload_files, int exit_upload, int exit_train, BufferedReader error) throws IOException {
+        if (exit_train != 0)
+            System.out.println(dataService.getMessage(error));
+        else if(exit_upload != 0) {
+            BufferedReader error2 = new BufferedReader(new InputStreamReader(upload_files.getErrorStream()));
+            System.out.println(dataService.getMessage(error2));
         }
     }
 
@@ -674,13 +608,7 @@ public class ClassificationService {
         else
             b = fileModelSQL.delete(enterpriseName,property);
 
-        if (b) {
-            System.out.println("Model(s) deleted");
-            return "Files deleted correctly";
-        } else {
-            System.out.println("Error");
-            return "Model(s) not found";
-        }
+        return getResult(b);
     }
 
     public String deleteMulti(CompanyPropertyKey request, List<String> modelList) throws SQLException {
@@ -695,6 +623,10 @@ public class ClassificationService {
                 if (!b) break;
             }
         }
+        return getResult(b);
+    }
+
+    private String getResult(boolean b) {
         if (b) {
             System.out.println("Model(s) deleted");
             return "Files deleted correctly";
@@ -877,9 +809,7 @@ public class ClassificationService {
                 models.set(n, models.get(n).split("#")[1]);
             }
             return models;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (SQLException | IOException e) {
             e.printStackTrace();
         }
         return null;
