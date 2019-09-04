@@ -148,8 +148,8 @@ public class ClassificationService {
                 builder.append(line2 + "\n");
             if (line2.contains("Confusion Matrix")) {
                 /* Skip the 2 lines we don't want*/
-                outputErrorTest.readLine();
-                outputErrorTest.readLine();
+                outputErrorTest.readLine(); //NOSONAR
+                outputErrorTest.readLine(); //NOSONAR
                 /* Read the 2 lines containing the numbers */
                 line2=outputErrorTest.readLine();
                 positivesNegativesBuilder.append(line2+"\n");
