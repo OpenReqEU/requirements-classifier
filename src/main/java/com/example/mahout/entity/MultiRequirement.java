@@ -1,12 +1,10 @@
 package com.example.mahout.entity;
 
-import com.fasterxml.jackson.annotation.JsonAnySetter;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -23,9 +21,6 @@ public class MultiRequirement implements Serializable {
     String requirementParent;
     @ApiModelProperty(value = "Aggregation of RequirementParts out of which the requirement consists of. This aggregation provides a mechanism for specifying requirement fragments or additional information for the Requirement.")
     private List<RequirementPart> requirementParts;
-
-    public MultiRequirement() {
-    }
 
     public String getId() {
         return id;

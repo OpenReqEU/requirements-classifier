@@ -1,6 +1,5 @@
 package com.example.mahout.entity.siemens;
 
-import com.example.mahout.entity.RequirementType;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import java.io.Serializable;

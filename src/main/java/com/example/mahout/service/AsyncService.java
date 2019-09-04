@@ -2,6 +2,7 @@ package com.example.mahout.service;
 
 import com.example.mahout.entity.Response;
 import com.example.mahout.entity.ResultId;
+import com.example.mahout.util.Control;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -15,6 +16,12 @@ import java.util.Random;
 
 public class AsyncService {
 
+    private static Random random = new Random();
+
+    private AsyncService() {
+        //utility class
+    }
+
     public static void updateClient(Response responseObj, String url) {
         HttpClient httpclient = HttpClients.createDefault();
         HttpPost httppost = new HttpPost(url);
@@ -25,16 +32,15 @@ public class AsyncService {
             int httpStatus;
             HttpResponse response = httpclient.execute(httppost);
             httpStatus = response.getStatusLine().getStatusCode();
-            if ((httpStatus >= 200) && (httpStatus < 300)) System.out.println("The connection with the external server was successful");
-            else System.out.println("An error occurred when connecting with the external server");
+            if ((httpStatus >= 200) && (httpStatus < 300)) Control.getInstance().showInfoMessage("The connection with the external server was successful");
+            else Control.getInstance().showInfoMessage("An error occurred when connecting with the external server");
         } catch (IOException e) {
-            e.printStackTrace();
+            Control.getInstance().showErrorMessage(e.getMessage());
         }
     }
 
     public static ResultId getId() {
-        Random rand = new Random();
-        return new ResultId(System.currentTimeMillis() + "_" + rand.nextInt(1000));
+        return new ResultId(System.currentTimeMillis() + "_" + random.nextInt(1000));
     }
 
 }

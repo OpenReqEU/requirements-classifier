@@ -16,18 +16,18 @@ public class DomainStats implements Serializable {
     @ApiModelProperty(value = "Reliability")
     Double reliability;
     @ApiModelProperty(value = "Reliability standard deviation")
-    Double reliability_std_deviation;
+    Double reliabilityStdDeviation;
     @ApiModelProperty(value = "Weighted precision")
-    Double weighted_precision;
+    Double weightedPrecision;
     @ApiModelProperty(value = "Weighted recall")
-    Double weighted_recall;
+    Double weightedRecall;
     @ApiModelProperty(value = "Weighted F1 score")
-    Double weighted_f1_score;
+    Double weightedF1Score;
     @ApiModelProperty(value = "Confusion matrix")
-    HashMap<String, ConfusionMatrixStats> confusion_matrix;
+    HashMap<String, ConfusionMatrixStats> confusionMatrix;
 
     public DomainStats() {
-        this.confusion_matrix = new HashMap<>();
+        this.confusionMatrix = new HashMap<>();
     }
 
     public Double getKappa() {
@@ -54,43 +54,43 @@ public class DomainStats implements Serializable {
         this.reliability = reliability;
     }
 
-    public Double getReliability_std_deviation() {
-        return reliability_std_deviation;
+    public Double getReliabilityStdDeviation() {
+        return reliabilityStdDeviation;
     }
 
-    public void setReliability_std_deviation(Double reliability_std_deviation) {
-        this.reliability_std_deviation = reliability_std_deviation;
+    public void setReliabilityStdDeviation(Double reliabilityStdDeviation) {
+        this.reliabilityStdDeviation = reliabilityStdDeviation;
     }
 
-    public Double getWeighted_precision() {
-        return weighted_precision;
+    public Double getWeightedPrecision() {
+        return weightedPrecision;
     }
 
-    public void setWeighted_precision(Double weighted_precision) {
-        this.weighted_precision = weighted_precision;
+    public void setWeightedPrecision(Double weightedPrecision) {
+        this.weightedPrecision = weightedPrecision;
     }
 
-    public Double getWeighted_recall() {
-        return weighted_recall;
+    public Double getWeightedRecall() {
+        return weightedRecall;
     }
 
-    public void setWeighted_recall(Double weighted_recall) {
-        this.weighted_recall = weighted_recall;
+    public void setWeightedRecall(Double weightedRecall) {
+        this.weightedRecall = weightedRecall;
     }
 
-    public Double getWeighted_f1_score() {
-        return weighted_f1_score;
+    public Double getWeightedF1Score() {
+        return weightedF1Score;
     }
 
-    public void setWeighted_f1_score(Double weighted_f1_score) {
-        this.weighted_f1_score = weighted_f1_score;
+    public void setWeightedF1Score(Double weightedF1Score) {
+        this.weightedF1Score = weightedF1Score;
     }
 
-    public HashMap<String, ConfusionMatrixStats> getConfusion_matrix() {
-        return confusion_matrix;
+    public HashMap<String, ConfusionMatrixStats> getConfusionMatrix() {
+        return confusionMatrix;
     }
 
-    public void setConfusion_matrix(HashMap<String, ConfusionMatrixStats> confusion_matrix) {
-        this.confusion_matrix = confusion_matrix;
+    public void setConfusionMatrix(HashMap<String, ConfusionMatrixStats> confusionMatrix) {
+        this.confusionMatrix = confusionMatrix;
     }
 }

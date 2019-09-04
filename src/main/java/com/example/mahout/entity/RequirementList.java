@@ -35,7 +35,7 @@ public class RequirementList implements Serializable {
         }
     }
 
-    public RequirementList(MultiRequirementList request, String property) throws Exception {
+    public RequirementList(MultiRequirementList request, String property) {
         this.requirements = new ArrayList<>();
         for (MultiRequirement cr : request.getRequirements()) {
             Requirement r  = new Requirement();

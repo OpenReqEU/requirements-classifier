@@ -5,7 +5,6 @@ import io.swagger.annotations.ApiModelProperty;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import java.io.Serializable;
-import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @ApiModel(value = "Classify Requirement", description = "A project requirement")

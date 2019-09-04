@@ -1,4 +1,4 @@
-package com.example.mahout.DAO;
+package com.example.mahout.dao;
 
 import com.example.mahout.entity.CompanyModel;
 import org.springframework.stereotype.Service;
@@ -29,62 +29,49 @@ public class CompanyModelDAOMySQL implements CompanyModelDAO {
     }
 
     @Override
-    public CompanyModel findOne(String companyName, String property) throws SQLException, IOException {
-        PreparedStatement ps = null;
-        ResultSet rs = null;
+    public CompanyModel findOne(String companyName, String property) throws SQLException {
 
-        try {
-            ps = c.prepareStatement("SELECT * FROM file_model_documents WHERE COMPANY_NAME = ? AND PROPERTY=?");
+        try(PreparedStatement ps = c.prepareStatement("SELECT * FROM file_model_documents WHERE COMPANY_NAME = ? AND PROPERTY=?")) {
             ps.setString(1, companyName);
             ps.setString(2, property);
             ps.execute();
-            rs = ps.getResultSet();
-
-            if (rs.next()) {
-                return new CompanyModel(
-                        rs.getString(COMPANY_NAME),
-                        rs.getString(PROPERTY),
-                        rs.getBytes(MODEL),
-                        rs.getBytes(LABELINDEX),
-                        rs.getBytes(DICTIONARY),
-                        rs.getBytes(FREQUENCIES));
-
-            } else {
-                return null;
+            try (ResultSet rs = ps.getResultSet()) {
+                if (rs.next()) {
+                    return new CompanyModel(
+                            rs.getString(COMPANY_NAME),
+                            rs.getString(PROPERTY),
+                            rs.getBytes(MODEL),
+                            rs.getBytes(LABELINDEX),
+                            rs.getBytes(DICTIONARY),
+                            rs.getBytes(FREQUENCIES));
+                } else {
+                    return null;
+                }
             }
-        } finally {
-            if (ps != null) ps.close();
-            if (rs != null) rs.close();
         }
     }
 
     @Override
     public List<CompanyModel> findByCompany(String company) throws SQLException, IOException {
 
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-
-        try {
-            ps = c.prepareStatement("SELECT * FROM file_model_documents WHERE COMPANY_NAME = ?");
+        try(PreparedStatement ps = c.prepareStatement("SELECT * FROM file_model_documents WHERE COMPANY_NAME = ?");) {
             ps.setString(1, company);
             ps.execute();
-            rs = ps.getResultSet();
+            try (ResultSet rs = ps.getResultSet()) {
 
-            List<CompanyModel> fileModels = new ArrayList<>();
-            while (rs.next()) {
-                fileModels.add(new CompanyModel(
-                        rs.getString(COMPANY_NAME),
-                        rs.getString(PROPERTY),
-                        rs.getBytes(MODEL),
-                        rs.getBytes(LABELINDEX),
-                        rs.getBytes(DICTIONARY),
-                        rs.getBytes(FREQUENCIES)));
+                List<CompanyModel> fileModels = new ArrayList<>();
+                while (rs.next()) {
+                    fileModels.add(new CompanyModel(
+                            rs.getString(COMPANY_NAME),
+                            rs.getString(PROPERTY),
+                            rs.getBytes(MODEL),
+                            rs.getBytes(LABELINDEX),
+                            rs.getBytes(DICTIONARY),
+                            rs.getBytes(FREQUENCIES)));
+                }
+
+                return fileModels;
             }
-
-            return fileModels;
-        } finally {
-            if (ps != null) ps.close();
-            if (rs != null) rs.close();
         }
     }
 
@@ -99,7 +86,6 @@ public class CompanyModelDAOMySQL implements CompanyModelDAO {
             ps.setBytes(5, fileModel.getDictionary());
             ps.setBytes(6, fileModel.getFrequencies());
             int result = ps.executeUpdate();
-            ps.close();
             return result != 0;
         }
     }
@@ -124,7 +110,6 @@ public class CompanyModelDAOMySQL implements CompanyModelDAO {
         try (PreparedStatement ps = c.prepareStatement("DELETE FROM file_model_documents WHERE COMPANY_NAME = ?")) {
             ps.setString(1, companyName);
             int result = ps.executeUpdate();
-            ps.close();
             return result != 0;
         }
     }
@@ -133,7 +118,6 @@ public class CompanyModelDAOMySQL implements CompanyModelDAO {
     public boolean deleteAll() throws SQLException {
         try (PreparedStatement ps = c.prepareStatement("DELETE FROM file_model_documents")) {
             int result = ps.executeUpdate();
-            ps.close();
             return result != 0;
         }
     }
@@ -147,77 +131,61 @@ public class CompanyModelDAOMySQL implements CompanyModelDAO {
 
     @Override
     public List<CompanyModel> findAllMulti(String enterpriseName, String property) throws SQLException, IOException {
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try {
-            ps = c.prepareStatement("SELECT * FROM file_model_documents WHERE COMPANY_NAME = ? AND PROPERTY LIKE ? || '%'");
+        try(PreparedStatement ps = c.prepareStatement("SELECT * FROM file_model_documents WHERE COMPANY_NAME = ? AND PROPERTY LIKE ? || '%'")) {
             ps.setString(1, enterpriseName);
             ps.setString(2, property);
             ps.execute();
-            rs = ps.getResultSet();
 
-            List<CompanyModel> fileModels = new ArrayList<>();
-            while (rs.next()) {
-                fileModels.add(new CompanyModel(
-                        rs.getString(COMPANY_NAME),
-                        rs.getString(PROPERTY),
-                        rs.getBytes(MODEL),
-                        rs.getBytes(LABELINDEX),
-                        rs.getBytes(DICTIONARY),
-                        rs.getBytes(FREQUENCIES)));
+            try (ResultSet rs = ps.getResultSet()) {
+                List<CompanyModel> fileModels = new ArrayList<>();
+                while (rs.next()) {
+                    fileModels.add(new CompanyModel(
+                            rs.getString(COMPANY_NAME),
+                            rs.getString(PROPERTY),
+                            rs.getBytes(MODEL),
+                            rs.getBytes(LABELINDEX),
+                            rs.getBytes(DICTIONARY),
+                            rs.getBytes(FREQUENCIES)));
+                }
+                return fileModels;
             }
-
-            return fileModels;
-        } finally {
-            if (ps != null) ps.close();
-            if (rs != null) rs.close();
         }
     }
 
     @Override
     public List<CompanyModel> findAll() throws SQLException, IOException {
 
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try {
-            ps = c.prepareStatement("SELECT * FROM file_model_documents");
+        try(PreparedStatement ps = c.prepareStatement("SELECT * FROM file_model_documents")) {
             ps.execute();
-            rs = ps.getResultSet();
+            try (ResultSet rs = ps.getResultSet()) {
 
-            List<CompanyModel> fileModels = new ArrayList<>();
-            while (rs.next()) {
-                fileModels.add(new CompanyModel(
-                        rs.getString(COMPANY_NAME),
-                        rs.getString(PROPERTY),
-                        rs.getBytes(MODEL),
-                        rs.getBytes(LABELINDEX),
-                        rs.getBytes(DICTIONARY),
-                        rs.getBytes(FREQUENCIES)));
+                List<CompanyModel> fileModels = new ArrayList<>();
+                while (rs.next()) {
+                    fileModels.add(new CompanyModel(
+                            rs.getString(COMPANY_NAME),
+                            rs.getString(PROPERTY),
+                            rs.getBytes(MODEL),
+                            rs.getBytes(LABELINDEX),
+                            rs.getBytes(DICTIONARY),
+                            rs.getBytes(FREQUENCIES)));
+                }
+
+
+                return fileModels;
             }
-
-
-            return fileModels;
-        } finally {
-            if (ps != null) ps.close();
-            if (rs != null) rs.close();
         }
 
     }
 
     @Override
     public boolean exists(String companyName, String property) throws SQLException {
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try {
-            ps = c.prepareStatement("SELECT * FROM file_model_documents WHERE COMPANY_NAME = ? AND PROPERTY = ?");
+        try(PreparedStatement ps = c.prepareStatement("SELECT * FROM file_model_documents WHERE COMPANY_NAME = ? AND PROPERTY = ?")) {
             ps.setString(1, companyName);
             ps.setString(2, property);
             ps.execute();
-            rs = ps.getResultSet();
-            return rs.next();
-        } finally {
-            if (ps != null) ps.close();
-            if (rs != null) rs.close();
+            try (ResultSet rs = ps.getResultSet()) {
+                return rs.next();
+            }
         }
     }
 
@@ -231,7 +199,6 @@ public class CompanyModelDAOMySQL implements CompanyModelDAO {
             ps.setString(5, fileModel.getCompanyName());
             ps.setString(6, fileModel.getProperty());
             int updated = ps.executeUpdate();
-            ps.close();
             return updated != 0;
         }
     }

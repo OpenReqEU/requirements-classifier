@@ -1,9 +1,8 @@
 package com.example.mahout.controller;
 
 import com.example.mahout.entity.*;
-import com.example.mahout.entity.siemens.SiemensRequirementList;
 import com.example.mahout.service.ClassificationService;
-import com.example.mahout.service.DataService;
+import com.example.mahout.util.Control;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -11,8 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.sql.SQLException;
 import java.util.List;
 
 @RestController
@@ -52,7 +50,7 @@ public class MultilabelClassificationController {
                      @ApiParam(value = "List of property values to generate models (if empty, all values are generated)")
                          @RequestParam(value = "modelList", required = false) List<String> modelList,
                      @ApiParam(value = "The endpoint where the result of the operation will be returned")
-                         @RequestParam("url") String url) throws Exception {
+                         @RequestParam("url") String url) {
 
         return classificationService.trainByDomainAsync(
                 new RequirementList(request, property),
@@ -60,8 +58,6 @@ public class MultilabelClassificationController {
                 property,
                 modelList,
                 url);
-
-        //return "Train successful";
     }
 
     @GetMapping("/model/{property}")
@@ -85,10 +81,14 @@ public class MultilabelClassificationController {
     public ResponseEntity delete(@ApiParam(value = "Property of the classifier (requirement_type)", required = true, example = "requirement") @RequestParam("property") String property,
                                  @ApiParam(value = "Proprietary company of the model", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
                        @ApiParam(value = "List of property values to generate models (if empty, all values are generated)")
-                       @RequestParam(value = "modelList", required = false) List<String> modelList) throws Exception {
-        CompanyPropertyKey request = new CompanyPropertyKey(enterpriseName, property);
-        String msg = classificationService.deleteMulti(request, modelList);
-        return new ResponseEntity<>(msg, msg.equals("Model(s) not found") ? HttpStatus.NOT_FOUND : HttpStatus.OK);
+                       @RequestParam(value = "modelList", required = false) List<String> modelList) {
+        try {
+            CompanyPropertyKey request = new CompanyPropertyKey(enterpriseName, property);
+            String msg = classificationService.deleteMulti(request, modelList);
+            return new ResponseEntity<>(msg, msg.equals("Model(s) not found") ? HttpStatus.NOT_FOUND : HttpStatus.OK);
+        } catch (SQLException e) {
+            return new ResponseEntity<>(new InternalError(),HttpStatus.INTERNAL_SERVER_ERROR);
+        }
 
     }
 
@@ -155,7 +155,7 @@ public class MultilabelClassificationController {
                                             "requirements' position order and hierarchical structure) is used to apply the same " +
                                             "tag during the classification process to all members belonging to a same " +
                                             "document list structure.") @RequestParam(value = "context", defaultValue = "false", required = false) Boolean context) throws Exception {
-        System.out.println("Starting train and test functionality");
+        Control.getInstance().showInfoMessage("Starting train and test functionality");
         return classificationService.trainAndTestByDomain(new RequirementList(request, property), n, property, modelList, context);
     }
 

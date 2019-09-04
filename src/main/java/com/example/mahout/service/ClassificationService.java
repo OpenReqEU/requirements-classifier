@@ -1,12 +1,13 @@
 package com.example.mahout.service;
 
 import com.example.mahout.Classifier;
-import com.example.mahout.DAO.CompanyModelDAO;
-import com.example.mahout.DAO.CompanyModelDAOMySQL;
+import com.example.mahout.dao.CompanyModelDAO;
+import com.example.mahout.dao.CompanyModelDAOMySQL;
 import com.example.mahout.ReqToTestSet;
 import com.example.mahout.SamplesCreator;
 import com.example.mahout.ToSeqFile;
 import com.example.mahout.entity.*;
+import com.example.mahout.util.Control;
 import com.google.gson.Gson;
 import org.apache.commons.io.FileUtils;
 import org.apache.mahout.common.Pair;
@@ -14,6 +15,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,6 +34,7 @@ public class ClassificationService {
     public static final String TEST = "/test";
     public static final String BIN_BASH = "/bin/bash";
     public static final String CONFIG_ENVIRONMENT_TXT = "./config/environment.txt";
+    private Control control = Control.getInstance();
 
     private static CompanyModelDAOMySQL fileModelSQL;
 
@@ -38,7 +43,7 @@ public class ClassificationService {
     private DataService dataService;
 
     public Map<String, Double> testOne(List<Requirement> reqToTrain, List<Requirement> reqToTest, String enterpriseName, int test_num) throws Exception {
-        System.out.println("Testing test set number " + test_num);
+        control.showInfoMessage("Testing test set number " + test_num);
 
         String pathToSeq = SEQ_FILES + enterpriseName + TEST + test_num;
 
@@ -46,124 +51,124 @@ public class ClassificationService {
         List<Requirement> reqToTestFiltered = dataService.removeHeaders(reqToTest);
 
         /* Create sequential file */
-        ToSeqFile.ReqToSeq(reqToTrainFiltered,pathToSeq);
+        ToSeqFile.reqToSeq(reqToTrainFiltered,pathToSeq);
 
         /*Create the process and execute it in order to train mahout and get the results */
-        ProcessBuilder pb_upload_files =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
-        ProcessBuilder pb_generate_vectors =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
-        ProcessBuilder pb_train =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
-        ProcessBuilder pb_download_dictionary =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/dictionary.file-0 ./tmpFiles/"+enterpriseName +"/test"+test_num+"/dictionary.file-0");
-        ProcessBuilder pb_download_frequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./tmpFiles/"+enterpriseName +"/test"+test_num+"/df-count");
-        ProcessBuilder pb_upload_test_set =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put ./tmpFiles/"+enterpriseName+"/test"+test_num + "/testSet /"+enterpriseName+"/testSet");
-        ProcessBuilder pb_test =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout testnb -i /"+enterpriseName+"/testSet -l /"+enterpriseName+"/labelindex -m /"+enterpriseName+"/model -ow -o /" + enterpriseName+"/results");
-        ProcessBuilder pb_delete_hadoop_files = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
+        ProcessBuilder pbUploadFiles =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
+        ProcessBuilder pbGenerateVectors =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
+        ProcessBuilder pbTrain =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
+        ProcessBuilder pbDownloadDictionary =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/dictionary.file-0 ./tmpFiles/"+enterpriseName +"/test"+test_num+"/dictionary.file-0");
+        ProcessBuilder pbDownloadFrequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./tmpFiles/"+enterpriseName +"/test"+test_num+"/df-count");
+        ProcessBuilder pbUploadTestSet =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put ./tmpFiles/"+enterpriseName+"/test"+test_num + "/testSet /"+enterpriseName+"/testSet");
+        ProcessBuilder pbTest =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout testnb -i /"+enterpriseName+"/testSet -l /"+enterpriseName+"/labelindex -m /"+enterpriseName+"/model -ow -o /" + enterpriseName+"/results");
+        ProcessBuilder pbDeleteHadoopFiles = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
 
 
         /* Set the enviroment configuration */
         try (BufferedReader environmentFile = new BufferedReader(new FileReader(new File(CONFIG_ENVIRONMENT_TXT)))) {
             String line;
             while ((line = environmentFile.readLine()) != null) {
-                String env_var[] = line.split(",");
-                pb_upload_files.environment().put(env_var[0], env_var[1]);
-                pb_generate_vectors.environment().put(env_var[0], env_var[1]);
-                pb_train.environment().put(env_var[0], env_var[1]);
-                pb_download_dictionary.environment().put(env_var[0], env_var[1]);
-                pb_download_frequencies.environment().put(env_var[0], env_var[1]);
-                pb_upload_test_set.environment().put(env_var[0], env_var[1]);
-                pb_test.environment().put(env_var[0], env_var[1]);
-                pb_delete_hadoop_files.environment().put(env_var[0], env_var[1]);
+                String[] env_var = line.split(",");
+                pbUploadFiles.environment().put(env_var[0], env_var[1]);
+                pbGenerateVectors.environment().put(env_var[0], env_var[1]);
+                pbTrain.environment().put(env_var[0], env_var[1]);
+                pbDownloadDictionary.environment().put(env_var[0], env_var[1]);
+                pbDownloadFrequencies.environment().put(env_var[0], env_var[1]);
+                pbUploadTestSet.environment().put(env_var[0], env_var[1]);
+                pbTest.environment().put(env_var[0], env_var[1]);
+                pbDeleteHadoopFiles.environment().put(env_var[0], env_var[1]);
 
             }
         }
 
-        System.out.println("Process created and configured");
+        control.showInfoMessage("Process created and configured");
 
         /* Execute all processes one by one and wwait for them to finish */
-        System.out.println("Uploading files");
-        Process upload_files = pb_upload_files.start();
-        upload_files.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(upload_files.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(upload_files.getErrorStream()))));
-        System.out.println("Done");
+        control.showInfoMessage("Uploading files");
+        Process uploadFiles = pbUploadFiles.start();
+        uploadFiles.waitFor();
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(uploadFiles.getInputStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(uploadFiles.getErrorStream()))));
+        control.showInfoMessage("Done");
 
-        System.out.println("Generating vectors");
-        Process generate_vectors = pb_generate_vectors.start();
-        generate_vectors.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(generate_vectors.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(generate_vectors.getErrorStream()))));
-        System.out.println("Done");
+        control.showInfoMessage("Generating vectors");
+        Process generateVectors = pbGenerateVectors.start();
+        generateVectors.waitFor();
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(generateVectors.getInputStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(generateVectors.getErrorStream()))));
+        control.showInfoMessage("Done");
 
-        System.out.println("Training");
-        Process train = pb_train.start();
+        control.showInfoMessage("Training");
+        Process train = pbTrain.start();
         train.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getErrorStream()))));
-        System.out.println("Done");
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getInputStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getErrorStream()))));
+        control.showInfoMessage("Done");
 
-        System.out.println("Downloading directory file");
-        Process download_dictionary = pb_download_dictionary.start();
-        download_dictionary.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_dictionary.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_dictionary.getErrorStream()))));
-        System.out.println("Done");
+        control.showInfoMessage("Downloading directory file");
+        Process downloadDictionary = pbDownloadDictionary.start();
+        downloadDictionary.waitFor();
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadDictionary.getInputStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadDictionary.getErrorStream()))));
+        control.showInfoMessage("Done");
 
-        System.out.println("Downloading frequency file");
-        Process download_frequencies = pb_download_frequencies.start();
-        download_frequencies.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_frequencies.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_frequencies.getErrorStream()))));
-        System.out.println("Done");
+        control.showInfoMessage("Downloading frequency file");
+        Process downloadFrequencies = pbDownloadFrequencies.start();
+        downloadFrequencies.waitFor();
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadFrequencies.getInputStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadFrequencies.getErrorStream()))));
+        control.showInfoMessage("Done");
 
-        System.out.println("Creating test set");
+        control.showInfoMessage("Creating test set");
         String tmpPath = "./tmpFiles/" + enterpriseName + "/test" + test_num;
         String freqPath = tmpPath + "/df-count";
         String dictionaryPath = tmpPath + "/dictionary.file-0";
         ReqToTestSet.createTestSet(freqPath, dictionaryPath, reqToTestFiltered, tmpPath +"/");
-        System.out.println("Done");
+        control.showInfoMessage("Done");
 
-        System.out.println("Uploading testSet");
-        Process upload_test_set = pb_upload_test_set.start();
-        upload_test_set.waitFor();
-        System.out.println("Done");
+        control.showInfoMessage("Uploading testSet");
+        Process uploadTestSet = pbUploadTestSet.start();
+        uploadTestSet.waitFor();
+        control.showInfoMessage("Done");
 
-        System.out.println("Testing model");
-        Process test = pb_test.start();
+        control.showInfoMessage("Testing model");
+        Process test = pbTest.start();
         train.waitFor();
-        BufferedReader output_error_test = new BufferedReader(new InputStreamReader(test.getErrorStream()));
-        System.out.println("Done");
+        BufferedReader outputErrorTest = new BufferedReader(new InputStreamReader(test.getErrorStream()));
+        control.showInfoMessage("Done");
 
         /* Parse the output of the process to get the disered results */
-        System.out.println("Getting stats");
+        control.showInfoMessage("Getting stats");
         StringBuilder builder = new StringBuilder();
-        StringBuilder positivess_negatives_builder= new StringBuilder();
+        StringBuilder positivesNegativesBuilder= new StringBuilder();
         String line2;
-        while ( (line2 = output_error_test.readLine()) != null) {
+        while ( (line2 = outputErrorTest.readLine()) != null) {
             if (line2.contains("Kappa") || line2.contains("Accuracy") || line2.contains("Reliability") ||
                     line2.contains("Weighted"))
                 builder.append(line2 + "\n");
             if (line2.contains("Confusion Matrix")) {
                 /* Skip the 2 lines we don't want*/
-                output_error_test.readLine();
-                output_error_test.readLine();
+                outputErrorTest.readLine();
+                outputErrorTest.readLine();
                 /* Read the 2 lines containing the numbers */
-                line2=output_error_test.readLine();
-                positivess_negatives_builder.append(line2+"\n");
-                line2=output_error_test.readLine();
-                positivess_negatives_builder.append(line2+"\n");
+                line2=outputErrorTest.readLine();
+                positivesNegativesBuilder.append(line2+"\n");
+                line2=outputErrorTest.readLine();
+                positivesNegativesBuilder.append(line2+"\n");
             }
         }
         String statistics = builder.toString();
-        String positives_negatives_matrix = positivess_negatives_builder.toString();
+        String positivesNegativesMatrix = positivesNegativesBuilder.toString();
 
 
-        System.out.println("Deleting hadoop files");
-        Process delete_hadoop_files = pb_delete_hadoop_files.start();
-        delete_hadoop_files.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getErrorStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getInputStream()))));
-        System.out.println("Done");
+        control.showInfoMessage("Deleting hadoop files");
+        Process deleteHadoopFiles = pbDeleteHadoopFiles.start();
+        deleteHadoopFiles.waitFor();
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(deleteHadoopFiles.getErrorStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(deleteHadoopFiles.getInputStream()))));
+        control.showInfoMessage("Done");
 
-        return dataService.applyStats(reqToTrain, reqToTrainFiltered, reqToTest, reqToTestFiltered, dataService.getStats(statistics, positives_negatives_matrix));
+        return dataService.applyStats(reqToTest, reqToTestFiltered, dataService.getStats(statistics, positivesNegativesMatrix));
 
 
     }
@@ -175,26 +180,26 @@ public class ClassificationService {
         List<Requirement> reqToTest = dataService.preprocess(request.getRequirements());
 
         /* Create testSets and trainSets*/
-        HashMap<String, ArrayList<List<Requirement>>> sets = SamplesCreator.generateTestSets(reqToTest,n);
-        ArrayList<List<Requirement>> trainSets = sets.get("train_sets");
-        ArrayList<List<Requirement>> testSets = sets.get("test_sets");
-        System.out.println("Test sets generated");
+        Map<String, List<List<Requirement>>> sets = SamplesCreator.generateTestSets(reqToTest,n);
+        List<List<Requirement>> trainSets = sets.get("train_sets");
+        List<List<Requirement>> testSets = sets.get("test_sets");
+        control.showInfoMessage("Test sets generated");
 
         String pathToSeq = "./seqFiles/" + enterpriseName;
 
         /* Initialize hashMap of results */
-        HashMap<String, Double> total_results = new HashMap<>();
-        total_results.put("kappa", 0.0);
-        total_results.put("accuracy", 0.0);
-        total_results.put("reliability", 0.0);
-        total_results.put("reliability_std_deviation", 0.0);
-        total_results.put("weighted_precision", 0.0);
-        total_results.put("weighted_recall", 0.0);
-        total_results.put("weighted_f1_score", 0.0);
-        total_results.put("true_positives", 0.0);
-        total_results.put("false_positives", 0.0);
-        total_results.put("false_negatives", 0.0);
-        total_results.put("true_negatives", 0.0);
+        HashMap<String, Double> totalResults = new HashMap<>();
+        totalResults.put("kappa", 0.0);
+        totalResults.put("accuracy", 0.0);
+        totalResults.put("reliability", 0.0);
+        totalResults.put("reliability_std_deviation", 0.0);
+        totalResults.put("weighted_precision", 0.0);
+        totalResults.put("weighted_recall", 0.0);
+        totalResults.put("weighted_f1_score", 0.0);
+        totalResults.put("true_positives", 0.0);
+        totalResults.put("false_positives", 0.0);
+        totalResults.put("false_negatives", 0.0);
+        totalResults.put("true_negatives", 0.0);
 
         List<Stats> partialStats = new ArrayList<>();
 
@@ -206,15 +211,15 @@ public class ClassificationService {
             partialStats.add(new Stats(recommendations, test, property));
         }
 
-        System.out.println("Total results calculated");
+        control.showInfoMessage("Total results calculated");
 
-        Stats result = new Stats(total_results.get("kappa"), total_results.get("accuracy"), total_results.get("reliability"),
-                total_results.get("reliability_std_deviation"), total_results.get("weighted_precision"), total_results.get("weighted_recall"),
-                total_results.get("weighted_f1_score"), total_results.get("true_positives").intValue(), total_results.get("false_positives").intValue(),
-                total_results.get("false_negatives").intValue(), total_results.get("true_negatives").intValue());
+        Stats result = new Stats(totalResults.get("kappa"), totalResults.get("accuracy"), totalResults.get("reliability"),
+                totalResults.get("reliability_std_deviation"), totalResults.get("weighted_precision"), totalResults.get("weighted_recall"),
+                totalResults.get("weighted_f1_score"), totalResults.get("true_positives").intValue(), totalResults.get("false_positives").intValue(),
+                totalResults.get("false_negatives").intValue(), totalResults.get("true_negatives").intValue());
 
         Gson gson = new Gson();
-        System.out.println("Total results transformed to JSON:\n" + gson.toJson(result));
+        control.showInfoMessage("Total results transformed to JSON:\n" + gson.toJson(result));
 
         /* Delete sequential file */
         File sequential = new File(pathToSeq);
@@ -223,7 +228,7 @@ public class ClassificationService {
         File tmpFiles = new File("./tmpFiles/"+enterpriseName);
         FileUtils.deleteDirectory(tmpFiles);
 
-        System.out.println("Directories deleted, train&test functionality finished.");
+        control.showInfoMessage("Directories deleted, train&test functionality finished.");
         return result;
     }
 
@@ -238,7 +243,7 @@ public class ClassificationService {
                 response.setCode(200);
                 response.setId(id.getId());
             } catch (Exception e) {
-                e.printStackTrace();
+                Control.getInstance().showErrorMessage(e.getMessage());
                 response.setMessage(e.getMessage());
                 response.setCode(500);
                 response.setId(id.getId());
@@ -256,111 +261,117 @@ public class ClassificationService {
         /* Parse the body of the request */
         List<Requirement> reqToTrain = dataService.removeHeaders(dataService.preprocess(request.getRequirements()));
 
-        fileModelSQL = new CompanyModelDAOMySQL();
+        fileModelSQL = new CompanyModelDAOMySQL(); //TODO FIX THIS
 
         String pathToSeq = "./seqFiles/" + enterpriseName;
 
 
         /* Create sequential file */
-        ToSeqFile.ReqToSeq(reqToTrain,pathToSeq);
+        ToSeqFile.reqToSeq(reqToTrain,pathToSeq);
 
         /*Create the process and execute it in order to train mahout and get the results */
-        ProcessBuilder pb_upload_files =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
-        ProcessBuilder pb_generate_vectors =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
-        ProcessBuilder pb_train =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
-        ProcessBuilder pb_download_model =  new ProcessBuilder(BIN_BASH, "-c", "mkdir -p ./data/"+enterpriseName+" && $HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/model ./data/"+enterpriseName+"/");
-        ProcessBuilder pb_download_labelindex =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
-        ProcessBuilder pb_download_dictionary =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/dictionary.file-0 ./data/"+enterpriseName+"/dictionary.file-0");
-        ProcessBuilder pb_download_frequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./data/"+enterpriseName+"/df-count");
-        ProcessBuilder pb_delete_hadoop_files = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
+        ProcessBuilder pbUploadFiles =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
+        ProcessBuilder pbGenerateVectors =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
+        ProcessBuilder pbTrain =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
+        ProcessBuilder pbDownloadModel =  new ProcessBuilder(BIN_BASH, "-c", "mkdir -p ./data/"+enterpriseName+" && $HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/model ./data/"+enterpriseName+"/");
+        ProcessBuilder pbDownloadLabelIndex =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
+        ProcessBuilder pbDownloadDictionary =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/dictionary.file-0 ./data/"+enterpriseName+"/dictionary.file-0");
+        ProcessBuilder pbDownloadFrequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./data/"+enterpriseName+"/df-count");
+        ProcessBuilder pbDeleteHadoopFiles = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
 
 
         /* Set the enviroment configuration */
-        BufferedReader environmentFile = new BufferedReader(new FileReader(new File("./config/environment.txt")));
-        String line;
-        while ((line = environmentFile.readLine()) != null) {
-            String env_var[] = line.split(",");
-            pb_upload_files.environment().put(env_var[0],env_var[1]);
-            pb_generate_vectors.environment().put(env_var[0],env_var[1]);
-            pb_train.environment().put(env_var[0],env_var[1]);
-            pb_download_model.environment().put(env_var[0],env_var[1]);
-            pb_download_labelindex.environment().put(env_var[0],env_var[1]);
-            pb_download_dictionary.environment().put(env_var[0],env_var[1]);
-            pb_download_frequencies.environment().put(env_var[0],env_var[1]);
-            pb_delete_hadoop_files.environment().put(env_var[0],env_var[1]);
+        try(BufferedReader environmentFile = new BufferedReader(new FileReader(new File("./config/environment.txt")))) {
+            String line;
+            while ((line = environmentFile.readLine()) != null) {
+                String[] envVar = line.split(",");
+                pbUploadFiles.environment().put(envVar[0], envVar[1]);
+                pbGenerateVectors.environment().put(envVar[0], envVar[1]);
+                pbTrain.environment().put(envVar[0], envVar[1]);
+                pbDownloadModel.environment().put(envVar[0], envVar[1]);
+                pbDownloadLabelIndex.environment().put(envVar[0], envVar[1]);
+                pbDownloadDictionary.environment().put(envVar[0], envVar[1]);
+                pbDownloadFrequencies.environment().put(envVar[0], envVar[1]);
+                pbDeleteHadoopFiles.environment().put(envVar[0], envVar[1]);
 
+            }
         }
 
 
         /* Execute all processes and wait for them to finish */
-        Process upload_files = pb_upload_files.start();
-        int exit_upload = upload_files.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(upload_files.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(upload_files.getErrorStream()))));
+        Process uploadFiles = pbUploadFiles.start();
+        int exitUpload = uploadFiles.waitFor();
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(uploadFiles.getInputStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(uploadFiles.getErrorStream()))));
 
-        Process generate_vectors = pb_generate_vectors.start();
-        int exit_generate_vectors = generate_vectors.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(generate_vectors.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(generate_vectors.getErrorStream()))));
+        Process generateVectors = pbGenerateVectors.start();
+        int exitGenerateVectors = generateVectors.waitFor();
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(generateVectors.getInputStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(generateVectors.getErrorStream()))));
 
-        Process train = pb_train.start();
-        int exit_train = train.waitFor();
+        Process train = pbTrain.start();
+        int exitTrain = train.waitFor();
         BufferedReader error = new BufferedReader(new InputStreamReader(train.getErrorStream()));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getErrorStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getInputStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getErrorStream()))));
 
-        Process download_model = pb_download_model.start();
-        int exit_dw_model = download_model.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_model.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_model.getErrorStream()))));
+        Process downloadModel = pbDownloadModel.start();
+        int exitDwModel = downloadModel.waitFor();
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadModel.getInputStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadModel.getErrorStream()))));
 
-        Process download_labelindex = pb_download_labelindex.start();
-        int exit_dw_labelindex = download_labelindex.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_labelindex.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_labelindex.getErrorStream()))));
-
-
-        Process download_dictionary = pb_download_dictionary.start();
-        int exit_dw_dictionary = download_dictionary.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_dictionary.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_dictionary.getErrorStream()))));
+        Process downloadLabelIndex = pbDownloadLabelIndex.start();
+        int exitDwLabelIndex = downloadLabelIndex.waitFor();
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadLabelIndex.getInputStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadLabelIndex.getErrorStream()))));
 
 
-        Process download_frequencies = pb_download_frequencies.start();
-        int exit_dw_frequencies = download_frequencies.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_frequencies.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_frequencies.getErrorStream()))));
-
-        Process delete_hadoop_files = pb_delete_hadoop_files.start();
-        int exit_delete_hdfs_files = delete_hadoop_files.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getErrorStream()))));
+        Process downloadDictionary = pbDownloadDictionary.start();
+        int exitDwDictionary = downloadDictionary.waitFor();
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadDictionary.getInputStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadDictionary.getErrorStream()))));
 
 
-        exitProcess(upload_files, exit_upload, exit_train, error);
+        Process downloadFrequencies = pbDownloadFrequencies.start();
+        int exitDwFrequencies = downloadFrequencies.waitFor();
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadFrequencies.getInputStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadFrequencies.getErrorStream()))));
+
+        Process deleteHadoopFiles = pbDeleteHadoopFiles.start();
+        int exitDeleteHdfsFiles = deleteHadoopFiles.waitFor();
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(deleteHadoopFiles.getInputStream()))));
+        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(deleteHadoopFiles.getErrorStream()))));
+
+
+        exitProcess(uploadFiles, exitUpload, exitTrain, error);
 
         /* Check if all went correctly*/
-        if (exit_upload == 0 && exit_generate_vectors == 0 && exit_train == 0 && exit_dw_model == 0
-                && exit_dw_labelindex== 0 && exit_dw_dictionary == 0 && exit_dw_frequencies == 0
-                && exit_delete_hdfs_files == 0) {
+        if (exitUpload == 0 && exitGenerateVectors == 0 && exitTrain == 0 && exitDwModel == 0
+                && exitDwLabelIndex== 0 && exitDwDictionary == 0 && exitDwFrequencies == 0
+                && exitDeleteHdfsFiles == 0) {
             /*Process the stored result files*/
             /*All the files will be stored in a directory with the name of the file that generated the data!*/
             String dataPath = "./data/" + enterpriseName + "/";
+
             File model = new File(dataPath + "model/naiveBayesModel.bin");
-            File labelindex = new File(dataPath + "labelindex");
+            File labelIndex = new File(dataPath + "labelindex");
             File dictionary = new File(dataPath + "dictionary.file-0");
             File frequencies = new File(dataPath + "df-count");
 
-            CompanyModel fileModel = new CompanyModel(enterpriseName, property, model, labelindex, dictionary, frequencies);
+            CompanyModel fileModel = new CompanyModel(enterpriseName, property, model, labelIndex, dictionary, frequencies);
 
-            if (fileModelSQL == null) fileModelSQL = new CompanyModelDAOMySQL();
+            if (fileModelSQL == null) fileModelSQL = new CompanyModelDAOMySQL(); //TODO FIX THIS
             fileModelSQL.save(fileModel);
 
             /*Once we stored the fileModel delete all files */
-            model.delete();
-            labelindex.delete();
-            dictionary.delete();
-            frequencies.delete();
+            Path modelFile = Paths.get(dataPath + "model/naiveBayesModel.bin");
+            Path labelIndexFile = Paths.get(dataPath + "labelindex");
+            Path dictionaryFile = Paths.get(dataPath + "dictionary.file-0");
+            Path frequenciesFile = Paths.get(dataPath + "df-count");
+            Files.delete(modelFile);
+            Files.delete(labelIndexFile);
+            Files.delete(dictionaryFile);
+            Files.delete(frequenciesFile);
 
             FileUtils.deleteDirectory(new File(dataPath));
         }
@@ -380,12 +391,12 @@ public class ClassificationService {
 
         Classifier classifier = new Classifier();
 
-        System.out.println("Starting classifier");
+        control.showInfoMessage("Starting classifier");
 
         ResultId resultId = AsyncService.getId();
 
         /* Classify the requirements with the model of the company */
-        ArrayList<Pair<String, Pair<String, Double>>> recomendations = classifier.classify(enterpriseName, requirements, property,
+        List<Pair<String, Pair<String, Double>>> recomendations = classifier.classify(enterpriseName, requirements, property,
                 resultId);
         HashMap<String, Recommendation> recommendationMap = new HashMap<>();
 
@@ -393,7 +404,7 @@ public class ClassificationService {
             Recommendation recomendation = new Recommendation();
             Pair<String,Pair<String, Double>> element = recomendations.get(i);
             recomendation.setRequirement(element.getFirst());
-            recomendation.setRequirement_type(element.getSecond().getFirst());
+            recomendation.setRequirementType(element.getSecond().getFirst());
             recomendation.setConfidence(element.getSecond().getSecond());
             if (!recommendationMap.containsKey(element.getFirst()))
                 recommendationMap.put(element.getFirst(), recomendation);
@@ -420,7 +431,7 @@ public class ClassificationService {
         Integer positiveTag = 0;
         Integer negativeTag = 0;
         for (Requirement r : children) {
-            if (recommendationMap.get(r.getId()).getRequirement_type().equals(property)) ++positiveTag;
+            if (recommendationMap.get(r.getId()).getRequirementType().equals(property)) ++positiveTag;
             else ++negativeTag;
         }
 
@@ -429,7 +440,7 @@ public class ClassificationService {
         else tag = "Prose";
 
         for (Requirement r : children) {
-            recommendationMap.get(r.getId()).setRequirement_type(tag);
+            recommendationMap.get(r.getId()).setRequirementType(tag);
         }
 
     }
@@ -444,129 +455,133 @@ public class ClassificationService {
         return isList;
     }
 
-    private static final String grammarExp = "^([a-z|A-Z]+|^[MDCLXVI]+$|[0-9]+)?[)|.|\\-|·]";
+    private static final String GRAMMAR_EXP = "^([a-z|A-Z]+|^[MDCLXVI]+$|[0-9]+)?[)|.|\\-|·]";
 
     private static boolean isBulletItem(String text) {
-        Pattern pattern = Pattern.compile(grammarExp);
+        Pattern pattern = Pattern.compile(GRAMMAR_EXP);
         Matcher matcher = pattern.matcher(text);
-        while (matcher.find()) {
-            return true;
-        }
-        return false;
+        return matcher.find();
     }
 
     public void updateMulti(RequirementList request, String property, String enterpriseName, List<String> modelList) throws Exception {
-        HashMap<String, RequirementList> domainRequirementsMap = dataService.mapByDomain(request, property);
-        for (String domain : domainRequirementsMap.keySet()) {
+        Map<String, RequirementList> domainRequirementsMap = dataService.mapByDomain(request, property);
+        for (Map.Entry<String,RequirementList> entry : domainRequirementsMap.entrySet()) {
+            String domain = entry.getKey();
+            RequirementList requirementList = entry.getValue();
             if (!domain.trim().isEmpty()) {
-                if (modelList.isEmpty()) updateDomainModel(request, domainRequirementsMap.get(domain), enterpriseName, property, domain);
-                else if (modelList.contains(domain)) updateDomainModel(request, domainRequirementsMap.get(domain), enterpriseName, property, domain);
+                if (modelList.isEmpty()) updateDomainModel(request, requirementList, enterpriseName, property, domain);
+                else if (modelList.contains(domain)) updateDomainModel(request, requirementList, enterpriseName, property, domain);
             }
         }
-        System.out.println("Done");
+        control.showInfoMessage("Done");
     }
 
     private void updateDomainModel(RequirementList request, RequirementList requirementList, String enterpriseName, String property, String domain) throws Exception {
         for (Requirement requirement : request.getRequirements()) {
             if (requirementList.getRequirements().contains(requirement)) {
-                requirement.setRequirement_type(property + "#" + domain);
+                requirement.setRequirementType(property + "#" + domain);
             }
-            else requirement.setRequirement_type("Prose");
+            else requirement.setRequirementType("Prose");
         }
-        System.out.println("Updating " + domain + " model...");
+        control.showInfoMessage("Updating " + domain + " model...");
         update(request, property + "#" + domain, enterpriseName);
-        System.out.println("Done");
+        control.showInfoMessage("Done");
     }
 
     public String update(RequirementList request, String property, String enterpriseName) throws Exception {
         List<Requirement> reqToTrain = dataService.removeHeaders(dataService.preprocess(request.getRequirements()));
 
-        fileModelSQL = new CompanyModelDAOMySQL();
+        fileModelSQL = new CompanyModelDAOMySQL(); //TODO FIX THIS
 
         /* Check if actual company exists*/
         if (fileModelSQL.exists(enterpriseName, property)) {
             String pathToSeq = "./seqFiles/" + enterpriseName;
 
             /* Create sequential file */
-            ToSeqFile.ReqToSeq(reqToTrain, pathToSeq);
+            ToSeqFile.reqToSeq(reqToTrain, pathToSeq);
 
             /*Create the process and execute it in order to train mahout and get the results */
-            ProcessBuilder pb_upload_files =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
-            ProcessBuilder pb_generate_vectors =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
-            ProcessBuilder pb_train =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
-            ProcessBuilder pb_download_model =  new ProcessBuilder(BIN_BASH, "-c", "mkdir -p ./data/"+enterpriseName+" && $HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/model ./data/"+enterpriseName+"/");
-            ProcessBuilder pb_download_labelindex =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
-            ProcessBuilder pb_download_dictionary =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/dictionary.file-0 ./data/"+enterpriseName+"/dictionary.file-0");
-            ProcessBuilder pb_download_frequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./data/"+enterpriseName+"/df-count");
-            ProcessBuilder pb_delete_hadoop_files = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
+            ProcessBuilder pbUploadFiles =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
+            ProcessBuilder pbGenerateVectors =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
+            ProcessBuilder pbTrain =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
+            ProcessBuilder pbDownloadModel =  new ProcessBuilder(BIN_BASH, "-c", "mkdir -p ./data/"+enterpriseName+" && $HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/model ./data/"+enterpriseName+"/");
+            ProcessBuilder pbDownloadLabelIndex =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
+            ProcessBuilder pbDownloadDictionary =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/dictionary.file-0 ./data/"+enterpriseName+"/dictionary.file-0");
+            ProcessBuilder pbDownloadFrequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./data/"+enterpriseName+"/df-count");
+            ProcessBuilder pbDeleteHadoopFiles = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
 
 
             /* Set the enviroment configuration */
-            BufferedReader environmentFile = new BufferedReader(new FileReader(new File("./config/environment.txt")));
-            String line;
-            while ((line = environmentFile.readLine()) != null) {
-                String env_var[] = line.split(",");
-                pb_upload_files.environment().put(env_var[0],env_var[1]);
-                pb_generate_vectors.environment().put(env_var[0],env_var[1]);
-                pb_train.environment().put(env_var[0],env_var[1]);
-                pb_download_model.environment().put(env_var[0],env_var[1]);
-                pb_download_labelindex.environment().put(env_var[0],env_var[1]);
-                pb_download_dictionary.environment().put(env_var[0],env_var[1]);
-                pb_download_frequencies.environment().put(env_var[0],env_var[1]);
-                pb_delete_hadoop_files.environment().put(env_var[0],env_var[1]);
+            try(BufferedReader environmentFile = new BufferedReader(new FileReader(new File("./config/environment.txt")))) {
+                String line;
+                while ((line = environmentFile.readLine()) != null) {
+                    String[] envVar = line.split(",");
+                    pbUploadFiles.environment().put(envVar[0], envVar[1]);
+                    pbGenerateVectors.environment().put(envVar[0], envVar[1]);
+                    pbTrain.environment().put(envVar[0], envVar[1]);
+                    pbDownloadModel.environment().put(envVar[0], envVar[1]);
+                    pbDownloadLabelIndex.environment().put(envVar[0], envVar[1]);
+                    pbDownloadDictionary.environment().put(envVar[0], envVar[1]);
+                    pbDownloadFrequencies.environment().put(envVar[0], envVar[1]);
+                    pbDeleteHadoopFiles.environment().put(envVar[0], envVar[1]);
 
+                }
             }
 
             /* Execute all processes one by one*/
-            Process upload_files = pb_upload_files.start();
-            int exit_upload = upload_files.waitFor();
+            Process uploadFiles = pbUploadFiles.start();
+            int exitUpload = uploadFiles.waitFor();
 
-            Process generate_vectors = pb_generate_vectors.start();
-            int exit_generate_vectors = generate_vectors.waitFor();
+            Process generateVectors = pbGenerateVectors.start();
+            int exitGenerateVectors = generateVectors.waitFor();
 
-            Process train = pb_train.start();
-            int exit_train = train.waitFor();
+            Process train = pbTrain.start();
+            int exitTrain = train.waitFor();
             BufferedReader error = new BufferedReader(new InputStreamReader(train.getErrorStream()));
 
-            Process download_model = pb_download_model.start();
-            int exit_dw_model = download_model.waitFor();
+            Process downloadModel = pbDownloadModel.start();
+            int exitDwModel = downloadModel.waitFor();
 
-            Process download_labelindex = pb_download_labelindex.start();
-            int exit_dw_labelindex = download_labelindex.waitFor();
+            Process downloadLabelIndex = pbDownloadLabelIndex.start();
+            int exitDwLabelIndex = downloadLabelIndex.waitFor();
 
-            Process download_dictionary = pb_download_dictionary.start();
-            int exit_dw_dictionary = download_dictionary.waitFor();
+            Process downloadDictionary = pbDownloadDictionary.start();
+            int exitDwDictionary = downloadDictionary.waitFor();
 
-            Process download_frequencies = pb_download_frequencies.start();
-            int exit_dw_frequencies = download_frequencies.waitFor();
+            Process downloadFrequencies = pbDownloadFrequencies.start();
+            int exitDwFrequencies = downloadFrequencies.waitFor();
 
-            Process delete_hadoop_files = pb_delete_hadoop_files.start();
-            int exit_delete_hdfs_files = delete_hadoop_files.waitFor();
+            Process deleteHadoopFiles = pbDeleteHadoopFiles.start();
+            int exitDeleteHdfsFiles = deleteHadoopFiles.waitFor();
 
-            exitProcess(upload_files, exit_upload, exit_train, error);
+            exitProcess(uploadFiles, exitUpload, exitTrain, error);
 
             /* Check if everything went well */
-            if (exit_upload == 0 && exit_generate_vectors == 0 && exit_train == 0 && exit_dw_model == 0
-                    && exit_dw_labelindex== 0 && exit_dw_dictionary == 0 && exit_dw_frequencies == 0
-                    && exit_delete_hdfs_files == 0) {
+            if (exitUpload == 0 && exitGenerateVectors == 0 && exitTrain == 0 && exitDwModel == 0
+                    && exitDwLabelIndex== 0 && exitDwDictionary == 0 && exitDwFrequencies == 0
+                    && exitDeleteHdfsFiles == 0) {
                 /*Process the stored result files*/
                 /*All the files will be stored in a directory with the name of the file that generated the data!*/
                 String dataPath = "./data/" + enterpriseName + "/";
                 File model = new File(dataPath + "model/naiveBayesModel.bin");
-                File labelindex = new File(dataPath + "labelindex");
+                File labelIndex = new File(dataPath + "labelindex");
                 File dictionary = new File(dataPath + "dictionary.file-0");
                 File frequencies = new File(dataPath + "df-count");
 
-                CompanyModel fileModel = new CompanyModel(enterpriseName, property, model, labelindex, dictionary, frequencies);
+                CompanyModel fileModel = new CompanyModel(enterpriseName, property, model, labelIndex, dictionary, frequencies);
 
                 /* Update the model in the database*/
                 fileModelSQL.update(fileModel);
 
                 /*Once we stored the fileModel delete all files */
-                model.delete();
-                labelindex.delete();
-                dictionary.delete();
-                frequencies.delete();
+                Path modelFile = Paths.get(dataPath + "model/naiveBayesModel.bin");
+                Path labelIndexFile = Paths.get(dataPath + "labelindex");
+                Path dictionaryFile = Paths.get(dataPath + "dictionary.file-0");
+                Path frequenciesFile = Paths.get(dataPath + "df-count");
+                Files.delete(modelFile);
+                Files.delete(labelIndexFile);
+                Files.delete(dictionaryFile);
+                Files.delete(frequenciesFile);
 
                 FileUtils.deleteDirectory(new File(dataPath));
             }
@@ -585,21 +600,21 @@ public class ClassificationService {
         }
     }
 
-    private void exitProcess(Process upload_files, int exit_upload, int exit_train, BufferedReader error) throws IOException {
-        if (exit_train != 0)
-            System.out.println(dataService.getMessage(error));
-        else if(exit_upload != 0) {
-            BufferedReader error2 = new BufferedReader(new InputStreamReader(upload_files.getErrorStream()));
-            System.out.println(dataService.getMessage(error2));
+    private void exitProcess(Process uploadFiles, int exitUpload, int exitTrain, BufferedReader error) throws IOException {
+        if (exitTrain != 0)
+            control.showInfoMessage(dataService.getMessage(error));
+        else if(exitUpload != 0) {
+            BufferedReader error2 = new BufferedReader(new InputStreamReader(uploadFiles.getErrorStream()));
+            control.showInfoMessage(dataService.getMessage(error2));
         }
     }
 
-    public String delete(CompanyPropertyKey request) throws Exception {
+    public String delete(CompanyPropertyKey request) throws SQLException {
         String enterpriseName = request.getCompany();
         String property = request.getProperty();
 
-        System.out.println("Request parsed, searching for model to delete it.");
-        if (fileModelSQL == null) fileModelSQL = new CompanyModelDAOMySQL();
+        control.showInfoMessage("Request parsed, searching for model to delete it.");
+        if (fileModelSQL == null) fileModelSQL = new CompanyModelDAOMySQL(); //TODO FIX THIS
         boolean b;
         if (request.getCompany().equals("ALL"))
             b = fileModelSQL.deleteAll();
@@ -612,7 +627,7 @@ public class ClassificationService {
     }
 
     public String deleteMulti(CompanyPropertyKey request, List<String> modelList) throws SQLException {
-        if (fileModelSQL == null) fileModelSQL = new CompanyModelDAOMySQL();
+        if (fileModelSQL == null) fileModelSQL = new CompanyModelDAOMySQL(); //TODO FIX THIS
         boolean b = false;
         if (modelList == null || modelList.isEmpty()) {
             b = fileModelSQL.deleteAllMulti(request.getCompany(), request.getProperty());
@@ -628,10 +643,10 @@ public class ClassificationService {
 
     private String getResult(boolean b) {
         if (b) {
-            System.out.println("Model(s) deleted");
+            control.showInfoMessage("Model(s) deleted");
             return "Files deleted correctly";
         } else {
-            System.out.println("Error");
+            control.showInfoMessage("Error");
             return "Model(s) not found";
         }
     }
@@ -648,7 +663,7 @@ public class ClassificationService {
                 response.setCode(200);
                 response.setId(id.getId());
             } catch (Exception e) {
-                e.printStackTrace();
+                Control.getInstance().showErrorMessage(e.getMessage());
                 response.setMessage(e.getMessage());
                 response.setCode(500);
                 response.setId(id.getId());
@@ -663,29 +678,31 @@ public class ClassificationService {
     }
 
     public void trainByDomain(RequirementList request, String enterprise, String propertyKey, List<String> modelList) throws Exception {
-        HashMap<String, RequirementList> domainRequirementsMap = dataService.mapByDomain(request, propertyKey);
-        for (String domain : domainRequirementsMap.keySet()) {
-            if (domainRequirementsMap.get(domain).getRequirements().size() == 0) {
-                System.out.println("Model not created for property " + domain + ": not enough data");
+        Map<String, RequirementList> domainRequirementsMap = dataService.mapByDomain(request, propertyKey);
+        for (Map.Entry<String,RequirementList> entry : domainRequirementsMap.entrySet()) {
+            String domain = entry.getKey();
+            RequirementList requirementList = entry.getValue();
+            if (requirementList.getRequirements().isEmpty()) {
+                control.showInfoMessage("Model not created for property " + domain + ": not enough data");
             }
             else if (!domain.trim().isEmpty()) {
-                if (modelList == null || modelList.isEmpty()) createDomainModel(request, domainRequirementsMap.get(domain), enterprise, propertyKey, domain);
-                else if (modelList.contains(domain)) createDomainModel(request, domainRequirementsMap.get(domain), enterprise, propertyKey, domain);
+                if (modelList == null || modelList.isEmpty()) createDomainModel(request, requirementList, enterprise, propertyKey, domain);
+                else if (modelList.contains(domain)) createDomainModel(request, requirementList, enterprise, propertyKey, domain);
             }
         }
-        System.out.println("Done");
+        control.showInfoMessage("Done");
     }
 
     private void createDomainModel(RequirementList request, RequirementList requirementDomainList, String enterprise, String propertyKey, String domain) throws Exception {
         for (Requirement requirement : request.getRequirements()) {
             if (requirementDomainList.getRequirements().contains(requirement)) {
-                requirement.setRequirement_type(propertyKey + "#" + domain);
+                requirement.setRequirementType(propertyKey + "#" + domain);
             }
-            else requirement.setRequirement_type("Prose");
+            else requirement.setRequirementType("Prose");
         }
-        System.out.println("Creating " + domain + " model...");
+        control.showInfoMessage("Creating " + domain + " model...");
         train(request, propertyKey + "#" + domain, enterprise);
-        System.out.println("Done");
+        control.showInfoMessage("Done");
     }
 
     public RecommendationList classifyByDomain(RequirementList request, String enterpriseName, String property, List<String> modelList, Boolean context) throws Exception {
@@ -708,8 +725,8 @@ public class ClassificationService {
         for (String model : classifyList) {
             RecommendationList recommendationList = classify(request, model, enterpriseName, context);
             for (Recommendation r : recommendationList.getRecommendations()) {
-                if (!r.getRequirement_type().equals("Prose")) {
-                    r.setRequirement_type(r.getRequirement_type().split("#")[1]);
+                if (!r.getRequirementType().equals("Prose")) {
+                    r.setRequirementType(r.getRequirementType().split("#")[1]);
                     globalList.getRecommendations().add(r);
                 }
             }
@@ -719,7 +736,7 @@ public class ClassificationService {
     }
 
     public DomainStats trainAndTestByDomain(RequirementList request, int n, String propertyKey, List<String> modelList, Boolean context) throws Exception {
-        HashMap<String, RequirementList> domainRequirementsMap = dataService.mapByDomain(request, propertyKey);
+        Map<String, RequirementList> domainRequirementsMap = dataService.mapByDomain(request, propertyKey);
         DomainStats domainStats = new DomainStats();
 
         Integer total = 0;
@@ -727,40 +744,41 @@ public class ClassificationService {
         HashMap<String, Stats> statsMap = new HashMap<>();
 
         for (String domain : domainRequirementsMap.keySet()) {
-            if (!domain.trim().isEmpty()) {
-                if (modelList == null || modelList.isEmpty()) {
-                    total = trainAndTestDomain(request, n, propertyKey, domainStats, total, domainSize, statsMap, domain, context);
-                }
-                else if (modelList.contains(domain)) {
-                    total = trainAndTestDomain(request, n, propertyKey, domainStats, total, domainSize, statsMap, domain, context);
-                }
+            if (!domain.trim().isEmpty() && (modelList == null || modelList.isEmpty() || modelList.contains(domain))) {
+                total = trainAndTestDomain(request, n, propertyKey, domainStats, total, domainSize, statsMap, domain, context);
             }
         }
 
-        double kappa, accuracy, reliability, reliability_std_deviation, weighted_precision, weighted_recall,
-                weighted_f1_score;
-        kappa = accuracy = reliability = reliability_std_deviation = weighted_precision = weighted_recall =
-                weighted_f1_score = 0.;
+        double kappa;
+        double accuracy;
+        double reliability;
+        double reliabilityStdDeviation;
+        double weightedPrecision;
+        double weightedRecall;
+        double weightedF1Score;
+        kappa = accuracy = reliability = reliabilityStdDeviation = weightedPrecision = weightedRecall =
+                weightedF1Score = 0.;
 
-        for (String key : statsMap.keySet()) {
-            Stats stats = statsMap.get(key);
+        for (Map.Entry<String, Stats> entry : statsMap.entrySet()) {
+            String key = entry.getKey();
+            Stats stats = entry.getValue();
             double factor = (double) domainSize.get(key) / (double) total;
             kappa += stats.getKappa() * factor;
             accuracy += stats.getAccuracy() * factor;
             reliability += stats.getReliability() * factor;
-            reliability_std_deviation += stats.getReliability_std_deviation() * factor;
-            weighted_precision += stats.getWeighted_precision() * factor;
-            weighted_recall += stats.getWeighted_recall() * factor;
-            weighted_f1_score += stats.getWeighted_f1_score() * factor;
+            reliabilityStdDeviation += stats.getReliabilityStdDeviation() * factor;
+            weightedPrecision += stats.getWeightedPrecision() * factor;
+            weightedRecall += stats.getWeightedRecall() * factor;
+            weightedF1Score += stats.getWeightedF1Score() * factor;
         }
 
         domainStats.setAccuracy(accuracy);
         domainStats.setKappa(kappa);
         domainStats.setReliability(reliability);
-        domainStats.setReliability_std_deviation(reliability_std_deviation);
-        domainStats.setWeighted_precision(weighted_precision);
-        domainStats.setWeighted_recall(weighted_recall);
-        domainStats.setWeighted_f1_score(weighted_f1_score);
+        domainStats.setReliabilityStdDeviation(reliabilityStdDeviation);
+        domainStats.setWeightedPrecision(weightedPrecision);
+        domainStats.setWeightedRecall(weightedRecall);
+        domainStats.setWeightedF1Score(weightedF1Score);
 
         return domainStats;
     }
@@ -771,30 +789,30 @@ public class ClassificationService {
         Integer domainPartialSize = 0;
         for (Requirement r : request.getRequirements()) {
             if (r.getReqDomains(propertyKey).contains(domain)) {
-                r.setRequirement_type(domain);
+                r.setRequirementType(domain);
                 ++domainPartialSize;
             }
-            else if (r.getRequirement_type()==null ||
-                    (r.getRequirement_type()!=null &&
-                            !r.getRequirement_type().equals("Heading")))
-                r.setRequirement_type("Prose");
+            else if (r.getRequirementType()==null ||
+                    (r.getRequirementType()!=null &&
+                            !r.getRequirementType().equals("Heading")))
+                r.setRequirementType("Prose");
         }
 
         Stats s = trainAndTest(request, propertyKey, n, context);
 
         ConfusionMatrixStats confusionMatrixStats = new ConfusionMatrixStats();
-        confusionMatrixStats.setTrue_positives(s.getTrue_positives());
-        confusionMatrixStats.setFalse_positives(s.getFalse_positives());
-        confusionMatrixStats.setFalse_negatives(s.getFalse_negatives());
-        confusionMatrixStats.setTrue_negatives(s.getTrue_negatives());
+        confusionMatrixStats.setTruePositives(s.getTruePositives());
+        confusionMatrixStats.setFalsePositives(s.getFalsePositives());
+        confusionMatrixStats.setFalseNegatives(s.getFalseNegatives());
+        confusionMatrixStats.setTrue_negatives(s.getTrueNegatives());
 
-        domainStats.getConfusion_matrix().put(domain, confusionMatrixStats);
+        domainStats.getConfusionMatrix().put(domain, confusionMatrixStats);
 
         total += domainPartialSize;
 
         domainSize.put(domain, domainPartialSize);
-        Stats stats = new Stats(s.getKappa(), s.getAccuracy(), s.getReliability(), s.getReliability_std_deviation(),
-                s.getWeighted_precision(), s.getWeighted_recall(), s.getWeighted_f1_score());
+        Stats stats = new Stats(s.getKappa(), s.getAccuracy(), s.getReliability(), s.getReliabilityStdDeviation(),
+                s.getWeightedPrecision(), s.getWeightedRecall(), s.getWeightedF1Score());
         statsMap.put(domain, stats);
         return total;
     }
@@ -802,7 +820,7 @@ public class ClassificationService {
     public List<String> getMultilabelValues(String enterpriseName, String property) {
         try {
             if (fileModelSQL == null)
-                fileModelSQL = new CompanyModelDAOMySQL();
+                fileModelSQL = new CompanyModelDAOMySQL(); //TODO FIX THIS
             List<String> models =  fileModelSQL.findAllMulti(enterpriseName, property).stream().map(CompanyModel::getProperty)
                     .collect(Collectors.toList());
             for (int n = 0; n < models.size(); n++) {
@@ -810,7 +828,7 @@ public class ClassificationService {
             }
             return models;
         } catch (SQLException | IOException e) {
-            e.printStackTrace();
+            Control.getInstance().showErrorMessage(e.getMessage());
         }
         return null;
     }

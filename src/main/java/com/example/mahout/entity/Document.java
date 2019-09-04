@@ -5,7 +5,7 @@ import java.util.*;
 public class Document {
 
     private List<Requirement> rootItems;
-    private HashMap<String,List<Requirement>> tree;
+    private Map<String,List<Requirement>> tree;
 
 
     public Document(List<Requirement> requirements) {
@@ -20,7 +20,7 @@ public class Document {
             } else {
                 if (!tree.containsKey(r.getRequirementParent()))
                     tree.put(r.getRequirementParent(), new ArrayList<>());
-                tree.get(r.getRequirementParent()).add(new Requirement(r.getId(), r.getRequirement_type(), r.getText(), r.getDocumentPositionOrder(), r.getRequirementParent()));
+                tree.get(r.getRequirementParent()).add(new Requirement(r.getId(), r.getRequirementType(), r.getText(), r.getDocumentPositionOrder(), r.getRequirementParent()));
             }
         }
 
@@ -34,11 +34,11 @@ public class Document {
         this.rootItems = rootItems;
     }
 
-    public HashMap<String, List<Requirement>> getTree() {
+    public Map<String, List<Requirement>> getTree() {
         return tree;
     }
 
-    public void setTree(HashMap<String, List<Requirement>> tree) {
+    public void setTree(Map<String, List<Requirement>> tree) {
         this.tree = tree;
     }
 

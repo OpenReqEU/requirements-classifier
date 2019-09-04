@@ -5,7 +5,6 @@ import io.swagger.annotations.ApiModelProperty;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import java.io.Serializable;
-import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @ApiModel(value = "Stats", description = "Stats results of the classifier test")
@@ -18,47 +17,47 @@ public class Stats implements Serializable {
     @ApiModelProperty(value = "Reliability")
     Double reliability;
     @ApiModelProperty(value = "Reliability standard deviation")
-    Double reliability_std_deviation;
+    Double reliabilityStdDeviation;
     @ApiModelProperty(value = "Weighted precision")
-    Double weighted_precision;
+    Double weightedPrecision;
     @ApiModelProperty(value = "Weighted recall")
-    Double weighted_recall;
+    Double weightedRecall;
     @ApiModelProperty(value = "Weighted F1 score")
-    Double weighted_f1_score;
+    Double weightedF1Score;
     @ApiModelProperty(value = "True positives")
-    Integer true_positives;
+    Integer truePositives;
     @ApiModelProperty(value = "False positives")
-    Integer false_positives;
+    Integer falsePositives;
     @ApiModelProperty(value = "False negatives")
-    Integer false_negatives;
+    Integer falseNegatives;
     @ApiModelProperty(value = "True negatives")
-    Integer true_negatives;
+    Integer trueNegatives;
 
-    public Stats(Double kappa, Double accuracy, Double reliability, Double reliability_std_deviation, Double weighted_precision,
-                 Double weighted_recall, Double weighted_f1_score, Integer true_positives, Integer false_positives,
-                 Integer false_negatives, Integer true_negatives) {
+    public Stats(Double kappa, Double accuracy, Double reliability, Double reliabilityStdDeviation, Double weightedPrecision,
+                 Double weightedRecall, Double weightedF1Score, Integer truePositives, Integer falsePositives,
+                 Integer falseNegatives, Integer trueNegatives) {
         this.kappa = kappa;
         this.accuracy = accuracy;
         this.reliability = reliability;
-        this.reliability_std_deviation = reliability_std_deviation;
-        this.weighted_precision = weighted_precision;
-        this.weighted_recall = weighted_recall;
-        this.weighted_f1_score = weighted_f1_score;
-        this.true_positives = true_positives;
-        this.false_positives = false_positives;
-        this.false_negatives = false_negatives;
-        this.true_negatives = true_negatives;
+        this.reliabilityStdDeviation = reliabilityStdDeviation;
+        this.weightedPrecision = weightedPrecision;
+        this.weightedRecall = weightedRecall;
+        this.weightedF1Score = weightedF1Score;
+        this.truePositives = truePositives;
+        this.falsePositives = falsePositives;
+        this.falseNegatives = falseNegatives;
+        this.trueNegatives = trueNegatives;
     }
 
-    public Stats(Double kappa, Double accuracy, Double reliability, Double reliability_std_deviation, Double weighted_precision,
-                 Double weighted_recall, Double weighted_f1_score) {
+    public Stats(Double kappa, Double accuracy, Double reliability, Double reliabilityStdDeviation, Double weightedPrecision,
+                 Double weightedRecall, Double weightedF1Score) {
         this.kappa = kappa;
         this.accuracy = accuracy;
         this.reliability = reliability;
-        this.reliability_std_deviation = reliability_std_deviation;
-        this.weighted_precision = weighted_precision;
-        this.weighted_recall = weighted_recall;
-        this.weighted_f1_score = weighted_f1_score;
+        this.reliabilityStdDeviation = reliabilityStdDeviation;
+        this.weightedPrecision = weightedPrecision;
+        this.weightedRecall = weightedRecall;
+        this.weightedF1Score = weightedF1Score;
     }
 
     public Stats() {
@@ -67,35 +66,34 @@ public class Stats implements Serializable {
 
     public Stats(RecommendationList recommendationList, RequirementList classifyList, String property) {
         //confusion matrix
-        true_positives = true_negatives = false_positives = false_negatives = 0;
+        truePositives = trueNegatives = falsePositives = falseNegatives = 0;
         for (Recommendation r : recommendationList.getRecommendations()) {
             //Classified as P
             Requirement originalReq = classifyList.find(r.getRequirement());
-            if (r.getRequirement_type().equals(property)) {
+            if (r.getRequirementType().equals(property)) {
                 //Original P
-                if (r.getRequirement_type().equals(originalReq.getRequirement_type())) {
-                    ++true_positives;
+                if (r.getRequirementType().equals(originalReq.getRequirementType())) {
+                    ++truePositives;
                 }
                 //Original N
-                else ++false_positives;
+                else ++falsePositives;
             }
             //Classified as N
             else {
                 //Original N
-                if (r.getRequirement_type().equals(originalReq.getRequirement_type())) {
-                    ++true_negatives;
+                if (r.getRequirementType().equals(originalReq.getRequirementType())) {
+                    ++trueNegatives;
                 }
                 //Original P
-                else ++false_negatives;
+                else ++falseNegatives;
             }
         }
 
         //stats evaluation
-        accuracy = 100.00 * (true_negatives + true_positives) / recommendationList.getRecommendations().size();
-        double a = true_negatives + false_negatives > 0 ? true_negatives / (true_negatives + false_negatives) : 0;
-        double b = true_positives + false_positives > 0 ? true_positives / (true_positives + false_positives) : 0;
+        accuracy = 100.00 * (trueNegatives + truePositives) / recommendationList.getRecommendations().size();
+        double a = trueNegatives + falseNegatives > 0 ? trueNegatives / (trueNegatives + falseNegatives) : 0;
+        double b = truePositives + falsePositives > 0 ? truePositives / (truePositives + falsePositives) : 0;
         reliability = (a + b) * 100.00 / 2;
-        //TODO
 
     }
 
@@ -123,67 +121,67 @@ public class Stats implements Serializable {
         this.reliability = reliability;
     }
 
-    public Double getReliability_std_deviation() {
-        return reliability_std_deviation;
+    public Double getReliabilityStdDeviation() {
+        return reliabilityStdDeviation;
     }
 
-    public void setReliability_std_deviation(Double reliability_std_deviation) {
-        this.reliability_std_deviation = reliability_std_deviation;
+    public void setReliabilityStdDeviation(Double reliabilityStdDeviation) {
+        this.reliabilityStdDeviation = reliabilityStdDeviation;
     }
 
-    public Double getWeighted_precision() {
-        return weighted_precision;
+    public Double getWeightedPrecision() {
+        return weightedPrecision;
     }
 
-    public void setWeighted_precision(Double weighted_precision) {
-        this.weighted_precision = weighted_precision;
+    public void setWeightedPrecision(Double weightedPrecision) {
+        this.weightedPrecision = weightedPrecision;
     }
 
-    public Double getWeighted_recall() {
-        return weighted_recall;
+    public Double getWeightedRecall() {
+        return weightedRecall;
     }
 
-    public void setWeighted_recall(Double weighted_recall) {
-        this.weighted_recall = weighted_recall;
+    public void setWeightedRecall(Double weightedRecall) {
+        this.weightedRecall = weightedRecall;
     }
 
-    public Double getWeighted_f1_score() {
-        return weighted_f1_score;
+    public Double getWeightedF1Score() {
+        return weightedF1Score;
     }
 
-    public void setWeighted_f1_score(Double weighted_f1_score) {
-        this.weighted_f1_score = weighted_f1_score;
+    public void setWeightedF1Score(Double weightedF1Score) {
+        this.weightedF1Score = weightedF1Score;
     }
 
-    public Integer getTrue_positives() {
-        return true_positives;
+    public Integer getTruePositives() {
+        return truePositives;
     }
 
-    public void setTrue_positives(Integer true_positives) {
-        this.true_positives = true_positives;
+    public void setTruePositives(Integer truePositives) {
+        this.truePositives = truePositives;
     }
 
-    public Integer getFalse_positives() {
-        return false_positives;
+    public Integer getFalsePositives() {
+        return falsePositives;
     }
 
-    public void setFalse_positives(Integer false_positives) {
-        this.false_positives = false_positives;
+    public void setFalsePositives(Integer falsePositives) {
+        this.falsePositives = falsePositives;
     }
 
-    public Integer getFalse_negatives() {
-        return false_negatives;
+    public Integer getFalseNegatives() {
+        return falseNegatives;
     }
 
-    public void setFalse_negatives(Integer false_negatives) {
-        this.false_negatives = false_negatives;
+    public void setFalseNegatives(Integer falseNegatives) {
+        this.falseNegatives = falseNegatives;
     }
 
-    public Integer getTrue_negatives() {
-        return true_negatives;
+    public Integer getTrueNegatives() {
+        return trueNegatives;
     }
 
-    public void setTrue_negatives(Integer true_negatives) {
-        this.true_negatives = true_negatives;
+    public void setTrueNegatives(Integer trueNegatives) {
+        this.trueNegatives = trueNegatives;
     }
 }

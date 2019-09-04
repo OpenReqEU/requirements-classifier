@@ -109,8 +109,8 @@ public class ControllerTest {
             r.setId(String.valueOf(i));
 
             //Type
-            if (i % 2 == 0) r.setRequirement_type(reqType1);
-            else r.setRequirement_type(reqType2);
+            if (i % 2 == 0) r.setRequirementType(reqType1);
+            else r.setRequirementType(reqType2);
 
             //Text
             r.setText(sentences[i%sentences.length]);

@@ -1,4 +1,4 @@
-package com.example.mahout.DAO;
+package com.example.mahout.dao;
 
 import com.example.mahout.entity.CompanyModel;
 

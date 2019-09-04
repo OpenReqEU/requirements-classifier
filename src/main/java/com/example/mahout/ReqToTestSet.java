@@ -2,6 +2,7 @@ package com.example.mahout;
 
 
 import com.example.mahout.entity.Requirement;
+import com.example.mahout.util.Control;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Multiset;
 import org.apache.hadoop.conf.Configuration;
@@ -34,48 +35,45 @@ import java.util.Map;
 
 public class ReqToTestSet {
 
+    private ReqToTestSet() {
+        //utility class
+    }
+
     private static Map<String, Integer> readDictionary(Configuration conf, Path dictionnaryPath) {
-        Map<String, Integer> dictionnary = new HashMap<String, Integer>();
-        SequenceFileIterable<Text, IntWritable> seq = new SequenceFileIterable<Text,IntWritable>(dictionnaryPath, true, conf);
+        Map<String, Integer> dictionnary = new HashMap<>();
+        SequenceFileIterable<Text, IntWritable> seq = new SequenceFileIterable<>(dictionnaryPath, true, conf);
 
         Iterator<Pair<Text, IntWritable>> iterator = seq.iterator();
         while (iterator.hasNext()) {
             Pair<Text, IntWritable> pair = iterator.next();
             dictionnary.put(pair.getFirst().toString(), pair.getSecond().get());
         }
-//        for (Pair<Text, IntWritable> pair: seq) {
-//            dictionnary.put(pair.getFirst().toString(), pair.getSecond().get());
-//        }
         return dictionnary;
     }
 
     private static Map<Integer, Long> readDocumentFrequency(Configuration conf, Path documentFrequencyPath) {
-        Map<Integer, Long> documentFrequency = new HashMap<Integer, Long>();
-        SequenceFileIterable<IntWritable, LongWritable> seq = new SequenceFileIterable<IntWritable, LongWritable>(documentFrequencyPath, true, conf);
+        Map<Integer, Long> documentFrequency = new HashMap<>();
+        SequenceFileIterable<IntWritable, LongWritable> seq = new SequenceFileIterable<>(documentFrequencyPath, true, conf);
 
         Iterator<Pair<IntWritable, LongWritable>> iterator = seq.iterator();
         while (iterator.hasNext()) {
             Pair<IntWritable, LongWritable> pair = iterator.next();
             documentFrequency.put(pair.getFirst().get(), pair.getSecond().get());
         }
-//        for (Pair<IntWritable, LongWritable> pair: seq) {
-//            documentFrequency.put(pair.getFirst().get(), pair.getSecond().get());
-//        }
-
         return documentFrequency;
     }
 
-    public static void createTestSet(String freqPath, String dictionaryPath, List<Requirement> requirements, String destiny_path) throws IOException, JSONException {
+    public static void createTestSet(String freqPath, String dictionaryPath, List<Requirement> requirements, String destinyPath) throws IOException, JSONException {
         Configuration configuration = new Configuration();
         FileSystem fs = FileSystem.get(configuration);
 
         Map<String, Integer> dictionary = readDictionary(configuration, new Path(dictionaryPath));
         Map<Integer, Long> frequency = readDocumentFrequency(configuration, new Path(freqPath));
 
-        System.out.println(frequency.size());
+        Control.getInstance().showInfoMessage(frequency.size()+"");
         int documentCount = frequency.get(-1).intValue();
 
-        SequenceFile.Writer writer = new SequenceFile.Writer(fs, configuration, new Path(destiny_path+"/testSet"), Text.class, VectorWritable.class);
+        SequenceFile.Writer writer = new SequenceFile.Writer(fs, configuration, new Path(destinyPath+"/testSet"), Text.class, VectorWritable.class);
         Text key = new Text();
         VectorWritable value = new VectorWritable();
 
@@ -84,7 +82,7 @@ public class ReqToTestSet {
             Requirement requirement = requirements.get(i);
 
             String id = requirement.getId();
-            String category = requirement.getRequirement_type().toString();
+            String category = requirement.getRequirementType();
             String req = requirement.getText();
 
             key.set("/" + category + "/" + id);

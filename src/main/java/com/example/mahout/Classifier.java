@@ -1,10 +1,12 @@
 package com.example.mahout;
 
-import com.example.mahout.DAO.CompanyModelDAO;
-import com.example.mahout.DAO.CompanyModelDAOMySQL;
+import com.example.mahout.dao.CompanyModelDAO;
+import com.example.mahout.dao.CompanyModelDAOMySQL;
 import com.example.mahout.entity.CompanyModel;
 import com.example.mahout.entity.Requirement;
 import com.example.mahout.entity.ResultId;
+import com.example.mahout.storage.StorageFileNotFoundException;
+import com.example.mahout.util.Control;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Multiset;
 import org.apache.commons.io.FilenameUtils;
@@ -28,7 +30,6 @@ import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
 import org.apache.mahout.vectorizer.TFIDF;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Files;
@@ -56,7 +57,7 @@ public class Classifier {
     }
 
     private static Map<String, Integer> readDictionary(Configuration conf, Path dictionnaryPath) {
-        Map<String, Integer> dictionnary = new HashMap<String, Integer>();
+        Map<String, Integer> dictionnary = new HashMap<>();
         for (Pair<Text, IntWritable> pair : new SequenceFileIterable<Text, IntWritable>(dictionnaryPath, true, conf)) {
             dictionnary.put(pair.getFirst().toString(), pair.getSecond().get());
     }
@@ -64,7 +65,7 @@ public class Classifier {
     }
 
     private static Map<Integer, Long> readDocumentFrequency(Configuration conf, Path documentFrequencyPath) {
-        Map<Integer, Long> documentFrequency = new HashMap<Integer,Long>();
+        Map<Integer, Long> documentFrequency = new HashMap<>();
         for (Pair<IntWritable, LongWritable> pair: new SequenceFileIterable<IntWritable, LongWritable>(documentFrequencyPath, true, conf)) {
             documentFrequency.put(pair.getFirst().get(), pair.getSecond().get());
         }
@@ -73,63 +74,62 @@ public class Classifier {
 
     private void createTmpFiles(CompanyModel companyModel, ResultId resultId) throws IOException {
 
-        byte[] model_file_bytes = companyModel.getModel();
-        byte[] labelindex_file_bytes = companyModel.getLabelindex();
-        byte[] dictionary_file_bytes = companyModel.getDictionary();
-        byte[] frequencies_file_bytes = companyModel.getFrequencies();
+        byte[] modelFileBytes = companyModel.getModel();
+        byte[] labelIndexFileBytes = companyModel.getLabelindex();
+        byte[] dictionaryFileBytes = companyModel.getDictionary();
+        byte[] frequenciesFileBytes = companyModel.getFrequencies();
 
         Files.createDirectories(Paths.get(TMP_FILES + resultId.getId()));
 
         java.nio.file.Path tmp_model_file = Paths.get(TMP_FILES + resultId.getId() + "/naiveBayesModel.bin");
-        Files.write(tmp_model_file, model_file_bytes);
+        Files.write(tmp_model_file, modelFileBytes);
 
-        java.nio.file.Path tmp_labelindex_file = Paths.get(TMP_FILES + resultId.getId() + "/labelindex");
-        Files.write(tmp_labelindex_file, labelindex_file_bytes);
+        java.nio.file.Path tmpLabelIndex_file = Paths.get(TMP_FILES + resultId.getId() + "/labelindex");
+        Files.write(tmpLabelIndex_file, labelIndexFileBytes);
 
-        java.nio.file.Path tmp_dictionary_file = Paths.get(TMP_FILES+ resultId.getId() + "/dictionary.file-0");
-        Files.write(tmp_dictionary_file, dictionary_file_bytes);
+        java.nio.file.Path tmpDictionaryFile = Paths.get(TMP_FILES+ resultId.getId() + "/dictionary.file-0");
+        Files.write(tmpDictionaryFile, dictionaryFileBytes);
 
-        java.nio.file.Path tmp_frequencies_file = Paths.get(TMP_FILES + resultId.getId()+ "/df-count");
-        Files.write(tmp_frequencies_file, frequencies_file_bytes);
+        java.nio.file.Path tmpFrequenciesFile = Paths.get(TMP_FILES + resultId.getId()+ "/df-count");
+        Files.write(tmpFrequenciesFile, frequenciesFileBytes);
 
         modelPath = FilenameUtils.getPath(tmp_model_file.toString());
-        labelindexPath = tmp_labelindex_file.toString();
-        dictionaryPath = tmp_dictionary_file.toString();
-        frequenciesPath = tmp_frequencies_file.toString();
+        labelindexPath = tmpLabelIndex_file.toString();
+        dictionaryPath = tmpDictionaryFile.toString();
+        frequenciesPath = tmpFrequenciesFile.toString();
 
-        System.out.println("Model Path: " + modelPath);
-        System.out.println("\nLabelindex Path: " + labelindexPath);
-        System.out.println("\nDictionary Path: " + dictionaryPath);
-        System.out.println("\nFrequencies Path: " + frequenciesPath + "\n");
+        Control.getInstance().showInfoMessage("Model Path: " + modelPath);
+        Control.getInstance().showInfoMessage("\nLabelindex Path: " + labelindexPath);
+        Control.getInstance().showInfoMessage("\nDictionary Path: " + dictionaryPath);
+        Control.getInstance().showInfoMessage("\nFrequencies Path: " + frequenciesPath + "\n");
     }
 
     private void deleteTmpFiles(ResultId resultId) {
-        File model = new File(modelPath + "/naiveBayesModel.bin");
-        File labelindex = new File(labelindexPath);
-        File dictionary = new File(dictionaryPath);
-        File frequencies = new File(frequenciesPath);
+        java.nio.file.Path modelFile = Paths.get(modelPath + "/naiveBayesModel.bin");
+        java.nio.file.Path labelIndexFile = Paths.get(labelindexPath);
+        java.nio.file.Path dictionaryFile = Paths.get(dictionaryPath);
+        java.nio.file.Path frequenciesFile = Paths.get(frequenciesPath);
 
-        model.delete();
-        labelindex.delete();
-        dictionary.delete();
-        frequencies.delete();
         try {
+            Files.delete(modelFile);
+            Files.delete(labelIndexFile);
+            Files.delete(dictionaryFile);
+            Files.delete(frequenciesFile);
             Files.delete(Paths.get(TMP_FILES + resultId.getId()));
+            Control.getInstance().showInfoMessage("Files deleted correctly\n");
         } catch (IOException e) {
-            e.printStackTrace();
+            Control.getInstance().showErrorMessage(e.getMessage());
         }
-
-        System.out.println("Files deleted correctly\n");
     }
 
-    public  ArrayList<Pair<String, Pair<String, Double>>> classify(String companyName, List<Requirement> requirements, String property,
+    public  List<Pair<String, Pair<String, Double>>> classify(String companyName, List<Requirement> requirements, String property,
                                                                    ResultId resultId) throws Exception {
 
         /* Load the companyModel from the database */
         CompanyModel companyModel = companyModelDAO.findOne(companyName, property);
 
         if (companyModel == null)
-            throw new Exception("Model not found");
+            throw new StorageFileNotFoundException("Model not found");
 
         createTmpFiles(companyModel, resultId);
 
@@ -154,13 +154,11 @@ public class Classifier {
         int labelCount = labels.size();
         int documentCount = documentFrequency.get(-1).intValue();
 
-        System.out.println("Number of labels: " +  labelCount);
-        System.out.println("Number of documents in training set: " + documentCount);
+        Control.getInstance().showInfoMessage("Number of labels: " +  labelCount);
+        Control.getInstance().showInfoMessage("Number of documents in training set: " + documentCount);
 
         /* Return a list of pairs: Requirement, (Best caregory, Confidence) */
-        ArrayList<Pair<String, Pair<String, Double>>> recomendations = new ArrayList<Pair<String,Pair<String, Double>>>();
-
-        String csvFile = "";
+        List<Pair<String, Pair<String, Double>>> recomendations = new ArrayList<>();
 
         for (int k = 0; k < requirements.size() ;k++) {
 
@@ -169,7 +167,7 @@ public class Classifier {
             String reqId = requirement.getId();
             String req = requirement.getText();
 
-            System.out.println("Requirement: " + reqId + "\t" + req);
+            Control.getInstance().showInfoMessage("Requirement: " + reqId + "\t" + req);
 
             Multiset<String> words = ConcurrentHashMultiset.create();
 
@@ -219,61 +217,19 @@ public class Classifier {
                     bestScore = score;
                     bestCategoryId = categoryId;
                 }
-                System.out.println(" " + labels.get(categoryId) + ": " + score);
+                Control.getInstance().showInfoMessage(" " + labels.get(categoryId) + ": " + score);
             }
             double confidence = 0;
-            double label_score = 0;
-
-            double minScore = -Double.MIN_VALUE;
-            double maxScore = -Double.MAX_VALUE;
-
-            /*for (Multiset.Entry<String> entry: words.entrySet()) {
-                String word = entry.getElement();
-                wordId = dictionary.get(word);
-                Double defScore = classifier.getScoreForLabelFeature(0, wordId);
-                Double proseScore = classifier.getScoreForLabelFeature(1, wordId);
-                System.out.println("\t" + word);
-                System.out.println("\t\tDEF : " + defScore);
-                System.out.println("\t\tProse : " + proseScore);
-                if (minScore >= defScore) minScore = defScore;
-                if (minScore >= proseScore) minScore = proseScore;
-                if (maxScore <= defScore) maxScore = defScore;
-                if (maxScore <= proseScore) maxScore = proseScore;
-            }
-
-            System.out.println("Min score = " + minScore);
-            System.out.println("Max score = " + maxScore);*/
-
-            if (wordId != null) {
-                label_score = classifier.getScoreForLabelFeature(bestCategoryId, wordId);
-            }
-            /*double prob = 0.;
-            for (Multiset.Entry<String> entry: words.entrySet()) {
-                String word = entry.getElement();
-                wordId = dictionary.get(word);
-                Double score = classifier.getScoreForLabelFeature(bestCategoryId, wordId);
-                prob += (score - minScore) / (maxScore - minScore) * 100;
-            }
-            prob /= words.size();*/
 
             double defScore = resultVector.getElement(0).get();
             double proseScore = resultVector.getElement(1).get();
-            //confidence = 100.0 + label_score;
             double dif = Math.min(75.0, Math.abs(defScore - proseScore)) / 75.00;
             confidence = 50.0 + dif * 50.0 ;
             recomendations.add(new Pair(reqId, (new Pair(labels.get(bestCategoryId), confidence))));
-            //recomendations.add(new Pair(reqId, (new Pair(labels.get(bestCategoryId), prob))));
-            System.out.println(" => " + labels.get(bestCategoryId) + "\tConfidence: "+ confidence);
+            Control.getInstance().showInfoMessage(" => " + labels.get(bestCategoryId) + "\tConfidence: "+ confidence);
 
-            //FIXME
-            /*String bestCategory = labels.get(bestCategoryId);
-            String category = requirement.getRequirement_type();
-            int tag = bestCategory.equals(category) ? 1 : 0;
-            csvFile += confidence + "," + tag + "\n";*/
+            //TODO FIX THIS
         }
-
-        //Files.write(Paths.get("data.csv"), csvFile.getBytes());
-
         deleteTmpFiles(resultId);
         return recomendations;
     }

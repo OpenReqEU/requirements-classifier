@@ -13,10 +13,8 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 @Configuration
 @EnableSwagger2
 public class SwaggerConfig {
-    private static final String SWAGGER_API_VERSION = "0.1";
-    private static final String LICENCE_TEXT = "License";
-    private static final String title = "Requirement Classifier API";
-    private static final String description = "REST API that provides a requirements classifier. " +
+    private static final String TITLE = "Requirement Classifier API";
+    private static final String DESCRIPTION = "REST API that provides a requirements classifier. " +
             "The classifier is based on a Naive Bayes implemented using Apache Mahout (https://mahout.apache.org/)" +
             "\n\n" +
             "This service implements two different classifiers:\n\n" +
@@ -28,15 +26,13 @@ public class SwaggerConfig {
 
     private ApiInfo apiInfo() {
         return new ApiInfoBuilder()
-                .title(title)
-                .description(description)
-                //.license(LICENCE_TEXT)
-                //.license(SWAGGER_API_VERSION)
+                .title(TITLE)
+                .description(DESCRIPTION)
                 .build();
     }
 
     @Bean
-    public Docket classifier_api() {
+    public Docket classifierApi() {
         return new Docket(DocumentationType.SWAGGER_2)
                 .apiInfo(apiInfo())
                 .pathMapping("/")

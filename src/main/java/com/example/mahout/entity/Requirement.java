@@ -14,7 +14,7 @@ public class Requirement implements Serializable, Comparable<Requirement>{
     @ApiModelProperty(value = "ID of the requirement", example = "REQ002")
     private String id;
     @ApiModelProperty(value = "Requirement type", example = "requirement")
-    private String requirement_type;
+    private String requirementType;
     @ApiModelProperty(value = "Text with the requirement information", example = "The system must be implemented using" +
             " last Java version")
     private String text;
@@ -25,15 +25,15 @@ public class Requirement implements Serializable, Comparable<Requirement>{
             "parent and child are tied together and cannot be understood without each other.", example = "REQ001")
     private String requirementParent;
 
-    HashMap<String, String> properties;
+    private HashMap<String, String> properties;
 
     public Requirement() {
         properties = new HashMap<>();
     }
 
-    public Requirement(String id, String requirement_type, String text, Integer documentPositionOrder, String requirementParent) {
+    public Requirement(String id, String requirementType, String text, Integer documentPositionOrder, String requirementParent) {
         this.id = id;
-        this.requirement_type = requirement_type;
+        this.requirementType = requirementType;
         this.text = text;
         this.documentPositionOrder = documentPositionOrder;
         this.requirementParent = requirementParent;
@@ -48,12 +48,12 @@ public class Requirement implements Serializable, Comparable<Requirement>{
         this.id = id;
     }
 
-    public String getRequirement_type() {
-        return requirement_type;
+    public String getRequirementType() {
+        return requirementType;
     }
 
-    public void setRequirement_type(String requirement_type) {
-        this.requirement_type = requirement_type;
+    public void setRequirementType(String requirementType) {
+        this.requirementType = requirementType;
     }
 
     public String getText() {
@@ -64,9 +64,9 @@ public class Requirement implements Serializable, Comparable<Requirement>{
         this.text = text;
     }
 
-    public String getReqDomains(String key) throws Exception {
+    public String getReqDomains(String key) throws InternalError {
         String s = properties.get(key);
-        if (s == null) throw new Exception("Property not present in JSON object");
+        if (s == null) throw new InternalError("Property not present in JSON object");
         else return s;
     }
 

@@ -7,43 +7,43 @@ import java.io.Serializable;
 public class ConfusionMatrixStats implements Serializable {
 
     @ApiModelProperty(value = "True positives")
-    Integer true_positives;
+    Integer truePositives;
     @ApiModelProperty(value = "False positives")
-    Integer false_positives;
+    Integer falsePositives;
     @ApiModelProperty(value = "False negatives")
-    Integer false_negatives;
+    Integer falseNegatives;
     @ApiModelProperty(value = "True negatives")
-    Integer true_negatives;
+    Integer trueNegatives;
 
-    public Integer getTrue_positives() {
-        return true_positives;
+    public Integer getTruePositives() {
+        return truePositives;
     }
 
-    public void setTrue_positives(Integer true_positives) {
-        this.true_positives = true_positives;
+    public void setTruePositives(Integer truePositives) {
+        this.truePositives = truePositives;
     }
 
-    public Integer getFalse_positives() {
-        return false_positives;
+    public Integer getFalsePositives() {
+        return falsePositives;
     }
 
-    public void setFalse_positives(Integer false_positives) {
-        this.false_positives = false_positives;
+    public void setFalsePositives(Integer falsePositives) {
+        this.falsePositives = falsePositives;
     }
 
-    public Integer getFalse_negatives() {
-        return false_negatives;
+    public Integer getFalseNegatives() {
+        return falseNegatives;
     }
 
-    public void setFalse_negatives(Integer false_negatives) {
-        this.false_negatives = false_negatives;
+    public void setFalseNegatives(Integer falseNegatives) {
+        this.falseNegatives = falseNegatives;
     }
 
-    public Integer getTrue_negatives() {
-        return true_negatives;
+    public Integer getTrueNegatives() {
+        return trueNegatives;
     }
 
-    public void setTrue_negatives(Integer true_negatives) {
-        this.true_negatives = true_negatives;
+    public void setTrue_negatives(Integer trueNegatives) {
+        this.trueNegatives = trueNegatives;
     }
 }

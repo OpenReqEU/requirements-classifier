@@ -9,7 +9,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SiemensRequirementList implements Serializable {
 
-    List<SiemensRequirement> reqs;
+    private List<SiemensRequirement> reqs;
 
     public SiemensRequirementList() {
         reqs = new ArrayList<>();

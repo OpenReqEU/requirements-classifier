@@ -8,7 +8,7 @@ import java.io.Serializable;
 public class Recommendation implements Serializable {
 
     String requirement;
-    String requirement_type;
+    String requirementType;
     Double confidence;
 
     public String getRequirement() {
@@ -19,12 +19,12 @@ public class Recommendation implements Serializable {
         this.requirement = requirement;
     }
 
-    public String getRequirement_type() {
-        return requirement_type;
+    public String getRequirementType() {
+        return requirementType;
     }
 
-    public void setRequirement_type(String requirement_type) {
-        this.requirement_type = requirement_type;
+    public void setRequirementType(String requirementType) {
+        this.requirementType = requirementType;
     }
 
     public Double getConfidence() {

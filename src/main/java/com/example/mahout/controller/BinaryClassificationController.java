@@ -1,10 +1,9 @@
 package com.example.mahout.controller;
 
 import com.example.mahout.entity.*;
-import com.example.mahout.entity.siemens.SiemensRequirementList;
 import com.example.mahout.service.ClassificationService;
 import com.example.mahout.service.DataService;
-import com.sun.org.apache.xpath.internal.operations.Bool;
+import com.example.mahout.util.Control;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,16 +20,6 @@ public class BinaryClassificationController {
     private DataService dataService;
     @Autowired
     private ClassificationService classificationService;
-
-    /**
-     * Just for testing purposes
-     * @return
-     * @throws Exception
-     */
-//    @GetMapping("/test")
-    public String test() throws Exception {
-        return "OK";
-    }
 
     @PostMapping("model")
     @ApiOperation(value = "Create a model",
@@ -52,7 +41,7 @@ public class BinaryClassificationController {
                                @ApiParam(value = "Property of the classifier (i.e. property value of the *requirement_type* field)", required = true, example = "requirement") @RequestParam("property") String property,
                                @ApiParam(value = "Proprietary company of the model", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
                           @ApiParam(value = "The endpoint where the result of the operation will be returned")
-                              @RequestParam("url") String url) throws Exception {
+                              @RequestParam("url") String url) {
 
         return classificationService.trainAsync(request, property, enterpriseName, url);
 
@@ -116,19 +105,9 @@ public class BinaryClassificationController {
                                       "requirements' position order and hierarchical structure) is used to apply the same " +
                                       "tag during the classification process to all members belonging to a same " +
                                       "document list structure.") @RequestParam(value = "context", defaultValue = "false", required = false) Boolean context) throws Exception {
-        System.out.println("Starting train and test functionality");
-        /* Parse the body of the request */
-//        JSONObject body = new JSONObject(request);
-
-        Stats result = classificationService.trainAndTest(request, property, n, context);
-
-        return result;
+        Control.getInstance().showInfoMessage("Starting train and test functionality");
+        return classificationService.trainAndTest(request, property, n, context);
 
     }
-
-    /*@RequestMapping(value = "parse", method = RequestMethod.POST)
-    public RequirementList parseSiemensToOpenReq(@RequestBody SiemensRequirementList siemensRequirementList) {
-        return dataService.parseSiemensToOpenReq(siemensRequirementList);
-    }*/
 
 }
