@@ -5,6 +5,7 @@ import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DomainStats implements Serializable {
@@ -30,67 +31,67 @@ public class DomainStats implements Serializable {
         this.confusionMatrix = new HashMap<>();
     }
 
-    public Double getKappa() {
-        return kappa;
-    }
-
     public void setKappa(Double kappa) {
         this.kappa = kappa;
     }
 
-    public Double getAccuracy() {
-        return accuracy;
+    public Double getKappa() {
+        return kappa;
     }
 
     public void setAccuracy(Double accuracy) {
         this.accuracy = accuracy;
     }
 
-    public Double getReliability() {
-        return reliability;
+    public Double getAccuracy() {
+        return accuracy;
     }
 
     public void setReliability(Double reliability) {
         this.reliability = reliability;
     }
 
-    public Double getReliabilityStdDeviation() {
-        return reliabilityStdDeviation;
+    public Double getReliability() {
+        return reliability;
     }
 
     public void setReliabilityStdDeviation(Double reliabilityStdDeviation) {
         this.reliabilityStdDeviation = reliabilityStdDeviation;
     }
 
-    public Double getWeightedPrecision() {
-        return weightedPrecision;
+    public Double getReliabilityStdDeviation() {
+        return reliabilityStdDeviation;
     }
 
     public void setWeightedPrecision(Double weightedPrecision) {
         this.weightedPrecision = weightedPrecision;
     }
 
-    public Double getWeightedRecall() {
-        return weightedRecall;
+    public Double getWeightedPrecision() {
+        return weightedPrecision;
     }
 
     public void setWeightedRecall(Double weightedRecall) {
         this.weightedRecall = weightedRecall;
     }
 
-    public Double getWeightedF1Score() {
-        return weightedF1Score;
+    public Double getWeightedRecall() {
+        return weightedRecall;
     }
 
     public void setWeightedF1Score(Double weightedF1Score) {
         this.weightedF1Score = weightedF1Score;
     }
 
-    public HashMap<String, ConfusionMatrixStats> getConfusionMatrix() {
-        return confusionMatrix;
+    public Double getWeightedF1Score() {
+        return weightedF1Score;
     }
 
     public void setConfusionMatrix(HashMap<String, ConfusionMatrixStats> confusionMatrix) {
         this.confusionMatrix = confusionMatrix;
+    }
+
+    public Map<String, ConfusionMatrixStats> getConfusionMatrix() {
+        return confusionMatrix;
     }
 }
