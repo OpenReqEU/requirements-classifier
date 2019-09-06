@@ -77,7 +77,6 @@ public class ClassificationService {
                 pbUploadTestSet.environment().put(env_var[0], env_var[1]);
                 pbTest.environment().put(env_var[0], env_var[1]);
                 pbDeleteHadoopFiles.environment().put(env_var[0], env_var[1]);
-
             }
         }
 
@@ -164,8 +163,6 @@ public class ClassificationService {
         control.showInfoMessage("Deleting hadoop files");
         Process deleteHadoopFiles = pbDeleteHadoopFiles.start();
         deleteHadoopFiles.waitFor();
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(deleteHadoopFiles.getErrorStream()))));
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(deleteHadoopFiles.getInputStream()))));
         control.showInfoMessage("Done");
 
         return dataService.applyStats(reqToTest, reqToTestFiltered, dataService.getStats(statistics, positivesNegativesMatrix));
@@ -234,25 +231,7 @@ public class ClassificationService {
 
     public ResultId trainAsync(RequirementList request, String property, String enterpriseName, String url) {
         ResultId id = AsyncService.getId();
-        //New thread
-        Thread thread = new Thread(() -> {
-            Response response = new Response();
-            try {
-                train(request, property, enterpriseName);
-                response.setMessage("Train successful");
-                response.setCode(200);
-                response.setId(id.getId());
-            } catch (Exception e) {
-                Control.getInstance().showErrorMessage(e.getMessage());
-                response.setMessage(e.getMessage());
-                response.setCode(500);
-                response.setId(id.getId());
-            }
-            finally {
-                AsyncService.updateClient(response, url);
-            }
-        });
-
+        Thread thread = new ThreadAsync(request,property,enterpriseName,url,id,null,false);
         thread.start();
         return id;
     }
@@ -260,128 +239,9 @@ public class ClassificationService {
     public void train(RequirementList request, String property, String enterpriseName) throws Exception {
         /* Parse the body of the request */
         List<Requirement> reqToTrain = dataService.removeHeaders(dataService.preprocess(request.getRequirements()));
-
         fileModelSQL = new CompanyModelDAOMySQL(); //TODO FIX THIS
-
         String pathToSeq = "./seqFiles/" + enterpriseName;
-
-
-        /* Create sequential file */
-        ToSeqFile.reqToSeq(reqToTrain,pathToSeq);
-
-        /*Create the process and execute it in order to train mahout and get the results */
-        ProcessBuilder pbUploadFiles =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
-        ProcessBuilder pbGenerateVectors =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
-        ProcessBuilder pbTrain =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
-        ProcessBuilder pbDownloadModel =  new ProcessBuilder(BIN_BASH, "-c", "mkdir -p ./data/"+enterpriseName+" && $HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/model ./data/"+enterpriseName+"/");
-        ProcessBuilder pbDownloadLabelIndex =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
-        ProcessBuilder pbDownloadDictionary =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/dictionary.file-0 ./data/"+enterpriseName+"/dictionary.file-0");
-        ProcessBuilder pbDownloadFrequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./data/"+enterpriseName+"/df-count");
-        ProcessBuilder pbDeleteHadoopFiles = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
-
-
-        /* Set the enviroment configuration */
-        try(BufferedReader environmentFile = new BufferedReader(new FileReader(new File("./config/environment.txt")))) {
-            String line;
-            while ((line = environmentFile.readLine()) != null) {
-                String[] envVar = line.split(",");
-                pbUploadFiles.environment().put(envVar[0], envVar[1]);
-                pbGenerateVectors.environment().put(envVar[0], envVar[1]);
-                pbTrain.environment().put(envVar[0], envVar[1]);
-                pbDownloadModel.environment().put(envVar[0], envVar[1]);
-                pbDownloadLabelIndex.environment().put(envVar[0], envVar[1]);
-                pbDownloadDictionary.environment().put(envVar[0], envVar[1]);
-                pbDownloadFrequencies.environment().put(envVar[0], envVar[1]);
-                pbDeleteHadoopFiles.environment().put(envVar[0], envVar[1]);
-
-            }
-        }
-
-
-        /* Execute all processes and wait for them to finish */
-        Process uploadFiles = pbUploadFiles.start();
-        int exitUpload = uploadFiles.waitFor();
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(uploadFiles.getInputStream()))));
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(uploadFiles.getErrorStream()))));
-
-        Process generateVectors = pbGenerateVectors.start();
-        int exitGenerateVectors = generateVectors.waitFor();
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(generateVectors.getInputStream()))));
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(generateVectors.getErrorStream()))));
-
-        Process train = pbTrain.start();
-        int exitTrain = train.waitFor();
-        BufferedReader error = new BufferedReader(new InputStreamReader(train.getErrorStream()));
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getInputStream()))));
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getErrorStream()))));
-
-        Process downloadModel = pbDownloadModel.start();
-        int exitDwModel = downloadModel.waitFor();
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadModel.getInputStream()))));
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadModel.getErrorStream()))));
-
-        Process downloadLabelIndex = pbDownloadLabelIndex.start();
-        int exitDwLabelIndex = downloadLabelIndex.waitFor();
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadLabelIndex.getInputStream()))));
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadLabelIndex.getErrorStream()))));
-
-
-        Process downloadDictionary = pbDownloadDictionary.start();
-        int exitDwDictionary = downloadDictionary.waitFor();
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadDictionary.getInputStream()))));
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadDictionary.getErrorStream()))));
-
-
-        Process downloadFrequencies = pbDownloadFrequencies.start();
-        int exitDwFrequencies = downloadFrequencies.waitFor();
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadFrequencies.getInputStream()))));
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(downloadFrequencies.getErrorStream()))));
-
-        Process deleteHadoopFiles = pbDeleteHadoopFiles.start();
-        int exitDeleteHdfsFiles = deleteHadoopFiles.waitFor();
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(deleteHadoopFiles.getInputStream()))));
-        control.showInfoMessage(dataService.getMessage(new BufferedReader(new InputStreamReader(deleteHadoopFiles.getErrorStream()))));
-
-
-        exitProcess(uploadFiles, exitUpload, exitTrain, error);
-
-        /* Check if all went correctly*/
-        if (exitUpload == 0 && exitGenerateVectors == 0 && exitTrain == 0 && exitDwModel == 0
-                && exitDwLabelIndex== 0 && exitDwDictionary == 0 && exitDwFrequencies == 0
-                && exitDeleteHdfsFiles == 0) {
-            /*Process the stored result files*/
-            /*All the files will be stored in a directory with the name of the file that generated the data!*/
-            String dataPath = "./data/" + enterpriseName + "/";
-
-            File model = new File(dataPath + "model/naiveBayesModel.bin");
-            File labelIndex = new File(dataPath + "labelindex");
-            File dictionary = new File(dataPath + "dictionary.file-0");
-            File frequencies = new File(dataPath + "df-count");
-
-            CompanyModel fileModel = new CompanyModel(enterpriseName, property, model, labelIndex, dictionary, frequencies);
-
-            if (fileModelSQL == null) fileModelSQL = new CompanyModelDAOMySQL(); //TODO FIX THIS
-            fileModelSQL.save(fileModel);
-
-            /*Once we stored the fileModel delete all files */
-            Path modelFile = Paths.get(dataPath + "model/naiveBayesModel.bin");
-            Path labelIndexFile = Paths.get(dataPath + "labelindex");
-            Path dictionaryFile = Paths.get(dataPath + "dictionary.file-0");
-            Path frequenciesFile = Paths.get(dataPath + "df-count");
-            Files.delete(modelFile);
-            Files.delete(labelIndexFile);
-            Files.delete(dictionaryFile);
-            Files.delete(frequenciesFile);
-
-            FileUtils.deleteDirectory(new File(dataPath));
-        }
-
-        /* Delete sequential file */
-        File sequential = new File(pathToSeq);
-        FileUtils.deleteDirectory(sequential);
-
-        /*Deleting the directory containing the data:*/
-        FileUtils.deleteDirectory(new File("./data"+enterpriseName));
+        trainModel(reqToTrain,pathToSeq,property,enterpriseName,false);
     }
 
     public RecommendationList classify(RequirementList request, String property, String enterpriseName, Boolean context) throws Exception {
@@ -496,103 +356,7 @@ public class ClassificationService {
         /* Check if actual company exists*/
         if (fileModelSQL.exists(enterpriseName, property)) {
             String pathToSeq = "./seqFiles/" + enterpriseName;
-
-            /* Create sequential file */
-            ToSeqFile.reqToSeq(reqToTrain, pathToSeq);
-
-            /*Create the process and execute it in order to train mahout and get the results */
-            ProcessBuilder pbUploadFiles =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
-            ProcessBuilder pbGenerateVectors =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
-            ProcessBuilder pbTrain =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
-            ProcessBuilder pbDownloadModel =  new ProcessBuilder(BIN_BASH, "-c", "mkdir -p ./data/"+enterpriseName+" && $HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/model ./data/"+enterpriseName+"/");
-            ProcessBuilder pbDownloadLabelIndex =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
-            ProcessBuilder pbDownloadDictionary =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/dictionary.file-0 ./data/"+enterpriseName+"/dictionary.file-0");
-            ProcessBuilder pbDownloadFrequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./data/"+enterpriseName+"/df-count");
-            ProcessBuilder pbDeleteHadoopFiles = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
-
-
-            /* Set the enviroment configuration */
-            try(BufferedReader environmentFile = new BufferedReader(new FileReader(new File("./config/environment.txt")))) {
-                String line;
-                while ((line = environmentFile.readLine()) != null) {
-                    String[] envVar = line.split(",");
-                    pbUploadFiles.environment().put(envVar[0], envVar[1]);
-                    pbGenerateVectors.environment().put(envVar[0], envVar[1]);
-                    pbTrain.environment().put(envVar[0], envVar[1]);
-                    pbDownloadModel.environment().put(envVar[0], envVar[1]);
-                    pbDownloadLabelIndex.environment().put(envVar[0], envVar[1]);
-                    pbDownloadDictionary.environment().put(envVar[0], envVar[1]);
-                    pbDownloadFrequencies.environment().put(envVar[0], envVar[1]);
-                    pbDeleteHadoopFiles.environment().put(envVar[0], envVar[1]);
-
-                }
-            }
-
-            /* Execute all processes one by one*/
-            Process uploadFiles = pbUploadFiles.start();
-            int exitUpload = uploadFiles.waitFor();
-
-            Process generateVectors = pbGenerateVectors.start();
-            int exitGenerateVectors = generateVectors.waitFor();
-
-            Process train = pbTrain.start();
-            int exitTrain = train.waitFor();
-            BufferedReader error = new BufferedReader(new InputStreamReader(train.getErrorStream()));
-
-            Process downloadModel = pbDownloadModel.start();
-            int exitDwModel = downloadModel.waitFor();
-
-            Process downloadLabelIndex = pbDownloadLabelIndex.start();
-            int exitDwLabelIndex = downloadLabelIndex.waitFor();
-
-            Process downloadDictionary = pbDownloadDictionary.start();
-            int exitDwDictionary = downloadDictionary.waitFor();
-
-            Process downloadFrequencies = pbDownloadFrequencies.start();
-            int exitDwFrequencies = downloadFrequencies.waitFor();
-
-            Process deleteHadoopFiles = pbDeleteHadoopFiles.start();
-            int exitDeleteHdfsFiles = deleteHadoopFiles.waitFor();
-
-            exitProcess(uploadFiles, exitUpload, exitTrain, error);
-
-            /* Check if everything went well */
-            if (exitUpload == 0 && exitGenerateVectors == 0 && exitTrain == 0 && exitDwModel == 0
-                    && exitDwLabelIndex== 0 && exitDwDictionary == 0 && exitDwFrequencies == 0
-                    && exitDeleteHdfsFiles == 0) {
-                /*Process the stored result files*/
-                /*All the files will be stored in a directory with the name of the file that generated the data!*/
-                String dataPath = "./data/" + enterpriseName + "/";
-                File model = new File(dataPath + "model/naiveBayesModel.bin");
-                File labelIndex = new File(dataPath + "labelindex");
-                File dictionary = new File(dataPath + "dictionary.file-0");
-                File frequencies = new File(dataPath + "df-count");
-
-                CompanyModel fileModel = new CompanyModel(enterpriseName, property, model, labelIndex, dictionary, frequencies);
-
-                /* Update the model in the database*/
-                fileModelSQL.update(fileModel);
-
-                /*Once we stored the fileModel delete all files */
-                Path modelFile = Paths.get(dataPath + "model/naiveBayesModel.bin");
-                Path labelIndexFile = Paths.get(dataPath + "labelindex");
-                Path dictionaryFile = Paths.get(dataPath + "dictionary.file-0");
-                Path frequenciesFile = Paths.get(dataPath + "df-count");
-                Files.delete(modelFile);
-                Files.delete(labelIndexFile);
-                Files.delete(dictionaryFile);
-                Files.delete(frequenciesFile);
-
-                FileUtils.deleteDirectory(new File(dataPath));
-            }
-
-            /* Delete sequential file */
-            File sequential = new File(pathToSeq);
-            FileUtils.deleteDirectory(sequential);
-
-            /*Deleting the directory containing the data:*/
-            FileUtils.deleteDirectory(new File("./data" + enterpriseName));
-
+            trainModel(reqToTrain,pathToSeq,property,enterpriseName,true);
             return "Update successful";
         }
         else {
@@ -654,25 +418,7 @@ public class ClassificationService {
     public ResultId trainByDomainAsync(RequirementList requirementList, String enterpriseName, String property,
                                        List<String> modelList, String url) {
         ResultId id = AsyncService.getId();
-        //New thread
-        Thread thread = new Thread(() -> {
-            Response response = new Response();
-            try {
-                trainByDomain(requirementList, enterpriseName, property, modelList);
-                response.setMessage("Train successful");
-                response.setCode(200);
-                response.setId(id.getId());
-            } catch (Exception e) {
-                Control.getInstance().showErrorMessage(e.getMessage());
-                response.setMessage(e.getMessage());
-                response.setCode(500);
-                response.setId(id.getId());
-            }
-            finally {
-                AsyncService.updateClient(response, url);
-            }
-        });
-
+        Thread thread = new ThreadAsync(requirementList,property,enterpriseName,url,id,modelList,true);
         thread.start();
         return id;
     }
@@ -831,5 +577,148 @@ public class ClassificationService {
             Control.getInstance().showErrorMessage(e.getMessage());
         }
         return null;
+    }
+
+    private void trainModel(List<Requirement> reqToTrain, String pathToSeq, String property, String enterpriseName, boolean update) throws IOException, InterruptedException, SQLException {
+        /* Create sequential file */
+        ToSeqFile.reqToSeq(reqToTrain, pathToSeq);
+
+        /*Create the process and execute it in order to train mahout and get the results */
+        ProcessBuilder pbUploadFiles =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
+        ProcessBuilder pbGenerateVectors =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
+        ProcessBuilder pbTrain =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
+        ProcessBuilder pbDownloadModel =  new ProcessBuilder(BIN_BASH, "-c", "mkdir -p ./data/"+enterpriseName+" && $HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/model ./data/"+enterpriseName+"/");
+        ProcessBuilder pbDownloadLabelIndex =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
+        ProcessBuilder pbDownloadDictionary =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/dictionary.file-0 ./data/"+enterpriseName+"/dictionary.file-0");
+        ProcessBuilder pbDownloadFrequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./data/"+enterpriseName+"/df-count");
+        ProcessBuilder pbDeleteHadoopFiles = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
+
+
+        /* Set the enviroment configuration */
+        try(BufferedReader environmentFile = new BufferedReader(new FileReader(new File("./config/environment.txt")))) {
+            String line;
+            while ((line = environmentFile.readLine()) != null) {
+                String[] envVar = line.split(",");
+                pbUploadFiles.environment().put(envVar[0], envVar[1]);
+                pbGenerateVectors.environment().put(envVar[0], envVar[1]);
+                pbTrain.environment().put(envVar[0], envVar[1]);
+                pbDownloadModel.environment().put(envVar[0], envVar[1]);
+                pbDownloadLabelIndex.environment().put(envVar[0], envVar[1]);
+                pbDownloadDictionary.environment().put(envVar[0], envVar[1]);
+                pbDownloadFrequencies.environment().put(envVar[0], envVar[1]);
+                pbDeleteHadoopFiles.environment().put(envVar[0], envVar[1]);
+
+            }
+        }
+
+        /* Execute all processes one by one*/
+        Process uploadFiles = pbUploadFiles.start();
+        int exitUpload = uploadFiles.waitFor();
+
+        Process generateVectors = pbGenerateVectors.start();
+        int exitGenerateVectors = generateVectors.waitFor();
+
+        Process train = pbTrain.start();
+        int exitTrain = train.waitFor();
+        BufferedReader error = new BufferedReader(new InputStreamReader(train.getErrorStream()));
+
+        Process downloadModel = pbDownloadModel.start();
+        int exitDwModel = downloadModel.waitFor();
+
+        Process downloadLabelIndex = pbDownloadLabelIndex.start();
+        int exitDwLabelIndex = downloadLabelIndex.waitFor();
+
+        Process downloadDictionary = pbDownloadDictionary.start();
+        int exitDwDictionary = downloadDictionary.waitFor();
+
+        Process downloadFrequencies = pbDownloadFrequencies.start();
+        int exitDwFrequencies = downloadFrequencies.waitFor();
+
+        Process deleteHadoopFiles = pbDeleteHadoopFiles.start();
+        int exitDeleteHdfsFiles = deleteHadoopFiles.waitFor();
+
+        exitProcess(uploadFiles, exitUpload, exitTrain, error);
+
+        /* Check if everything went well */
+        if (exitUpload == 0 && exitGenerateVectors == 0 && exitTrain == 0 && exitDwModel == 0
+                && exitDwLabelIndex== 0 && exitDwDictionary == 0 && exitDwFrequencies == 0
+                && exitDeleteHdfsFiles == 0) {
+            /*Process the stored result files*/
+            /*All the files will be stored in a directory with the name of the file that generated the data!*/
+            String dataPath = "./data/" + enterpriseName + "/";
+            File model = new File(dataPath + "model/naiveBayesModel.bin");
+            File labelIndex = new File(dataPath + "labelindex");
+            File dictionary = new File(dataPath + "dictionary.file-0");
+            File frequencies = new File(dataPath + "df-count");
+
+            CompanyModel fileModel = new CompanyModel(enterpriseName, property, model, labelIndex, dictionary, frequencies);
+
+            /* Update the model in the database*/
+            if (update) fileModelSQL.update(fileModel);
+            else {
+                if (fileModelSQL == null) fileModelSQL = new CompanyModelDAOMySQL(); //TODO FIX THIS
+                fileModelSQL.save(fileModel);
+            }
+
+            /*Once we stored the fileModel delete all files */
+            Path modelFile = Paths.get(dataPath + "model/naiveBayesModel.bin");
+            Path labelIndexFile = Paths.get(dataPath + "labelindex");
+            Path dictionaryFile = Paths.get(dataPath + "dictionary.file-0");
+            Path frequenciesFile = Paths.get(dataPath + "df-count");
+            Files.delete(modelFile);
+            Files.delete(labelIndexFile);
+            Files.delete(dictionaryFile);
+            Files.delete(frequenciesFile);
+
+            FileUtils.deleteDirectory(new File(dataPath));
+        }
+
+        /* Delete sequential file */
+        File sequential = new File(pathToSeq);
+        FileUtils.deleteDirectory(sequential);
+
+        /*Deleting the directory containing the data:*/
+        FileUtils.deleteDirectory(new File("./data" + enterpriseName));
+    }
+
+    private class ThreadAsync extends Thread {
+
+        private RequirementList request;
+        private String property;
+        private String enterpriseName;
+        private String url;
+        private ResultId id;
+        private boolean trainByDomain;
+        List<String> modelList;
+
+        public ThreadAsync(RequirementList request, String property, String enterpriseName, String url, ResultId id, List<String> modelList, boolean trainByDomain) {
+            this.request = request;
+            this.property = property;
+            this.enterpriseName = enterpriseName;
+            this.url = url;
+            this.id = id;
+            this.modelList = modelList;
+            this.trainByDomain = trainByDomain;
+        }
+
+        @Override
+        public void run() {
+            Response response = new Response();
+            try {
+                if (trainByDomain) trainByDomain(request,enterpriseName,property,modelList);
+                else train(request, property, enterpriseName);
+                response.setMessage("Train successful");
+                response.setCode(200);
+                response.setId(id.getId());
+            } catch (Exception e) {
+                Control.getInstance().showErrorMessage(e.getMessage());
+                response.setMessage(e.getMessage());
+                response.setCode(500);
+                response.setId(id.getId());
+            }
+            finally {
+                AsyncService.updateClient(response, url);
+            }
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.example.mahout;
 
 
+import com.example.mahout.entity.ExtractedWords;
 import com.example.mahout.entity.Requirement;
 import com.example.mahout.util.Control;
 import com.google.common.collect.ConcurrentHashMultiset;
@@ -63,6 +64,28 @@ public class ReqToTestSet {
         return documentFrequency;
     }
 
+    public static ExtractedWords extractWordsFromReq(Analyzer analyzer, String req, Map<String, Integer> dictionary) throws IOException {
+        Multiset<String> words = ConcurrentHashMultiset.create();
+
+        TokenStream ts = analyzer.tokenStream("text", new StringReader(req));
+        CharTermAttribute termAtt = ts.addAttribute(CharTermAttribute.class);
+        ts.reset();
+        int wordCount = 0;
+        while(ts.incrementToken()) {
+            if (termAtt.length()> 0) {
+                String word = ts.getAttribute(CharTermAttribute.class).toString();
+                Integer wordId = dictionary.get(word);
+                /* if the word is not in the dictionary, skip it */
+                if (wordId != null) {
+                    words.add(word);
+                    wordCount++;
+                }
+            }
+        }
+        ts.close();
+        return new ExtractedWords(words,wordCount);
+    }
+
     public static void createTestSet(String freqPath, String dictionaryPath, List<Requirement> requirements, String destinyPath) throws IOException, JSONException {
         Configuration configuration = new Configuration();
         FileSystem fs = FileSystem.get(configuration);
@@ -87,24 +110,8 @@ public class ReqToTestSet {
 
             key.set("/" + category + "/" + id);
 
-            Multiset<String> words = ConcurrentHashMultiset.create();
-
-            TokenStream ts = analyzer.tokenStream("text", new StringReader(req));
-            CharTermAttribute termAtt = ts.addAttribute(CharTermAttribute.class);
-            ts.reset();
-            int wordCount = 0;
-            while(ts.incrementToken()) {
-                if (termAtt.length()> 0) {
-                    String word = ts.getAttribute(CharTermAttribute.class).toString();
-                    Integer wordId = dictionary.get(word);
-                    /* if the word is not in the dictionary, skip it */
-                    if (wordId != null) {
-                        words.add(word);
-                        wordCount++;
-                    }
-                }
-            }
-            ts.close();
+            ExtractedWords extractedWords = extractWordsFromReq(analyzer,req,dictionary);
+            Multiset<String> words = extractedWords.getWords();
 
             /* Create vector wordId ==> weight using tfidf */
             Vector vector = new RandomAccessSparseVector(10000);
@@ -116,7 +123,7 @@ public class ReqToTestSet {
                 Long freq = frequency.get(wordId);
                 /* Add only if frequency of the word is present*/
                 if(freq != null) {
-                    double tfIdfValue = tfidf.calculate(count, freq.intValue(), wordCount, documentCount);
+                    double tfIdfValue = tfidf.calculate(count, freq.intValue(), extractedWords.getWordCount(), documentCount);
                     vector.setQuick(wordId, tfIdfValue);
                 }
             }

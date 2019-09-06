@@ -3,6 +3,7 @@ package com.example.mahout;
 import com.example.mahout.dao.CompanyModelDAO;
 import com.example.mahout.dao.CompanyModelDAOMySQL;
 import com.example.mahout.entity.CompanyModel;
+import com.example.mahout.entity.ExtractedWords;
 import com.example.mahout.entity.Requirement;
 import com.example.mahout.entity.ResultId;
 import com.example.mahout.storage.StorageFileNotFoundException;
@@ -169,25 +170,9 @@ public class Classifier {
 
             Control.getInstance().showInfoMessage("Requirement: " + reqId + "\t" + req);
 
-            Multiset<String> words = ConcurrentHashMultiset.create();
+            ExtractedWords extractedWords = ReqToTestSet.extractWordsFromReq(analyzer,req,dictionary);
+            Multiset<String> words = extractedWords.getWords();
 
-            /* Extract words from req. */
-            TokenStream ts = analyzer.tokenStream("text", new StringReader(req));
-            CharTermAttribute termAtt = ts.addAttribute(CharTermAttribute.class);
-            ts.reset();
-            int wordCount = 0;
-            while (ts.incrementToken()) {
-                if (termAtt.length() > 0) {
-                    String word = ts.getAttribute(CharTermAttribute.class).toString();
-                    Integer wordId = dictionary.get(word);
-                    /* if the word is not in the dictionary, skip it. */
-                    if (wordId != null) {
-                        words.add(word);
-                        wordCount++;
-                    }
-                }
-            }
-            ts.close();
             Integer wordId = null;
 
             /* create vector wordId --> weight using tfdiff */
@@ -199,7 +184,7 @@ public class Classifier {
                 int count = entry.getCount();
                 wordId = dictionary.get(word);
                 Long freq = documentFrequency.get(wordId);
-                double tfIdfValue = tfidf.calculate(count, freq.intValue(), wordCount, documentCount);
+                double tfIdfValue = tfidf.calculate(count, freq.intValue(), extractedWords.getWordCount(), documentCount);
                 vector.setQuick(wordId, tfIdfValue);
             }
 

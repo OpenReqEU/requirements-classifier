@@ -22,36 +22,36 @@ public class ClassifyRequirement implements Serializable {
             "the parent and child are tied together and cannot be understood without each other.", example = "REQ001")
     String requirementParent;
 
-    public String getId() {
-        return id;
-    }
-
     public void setId(String id) {
         this.id = id;
     }
 
-    public String getText() {
-        return text;
+    public String getId() {
+        return id;
     }
 
     public void setText(String text) {
         this.text = text;
     }
 
-    public Integer getDocumentPositionOrder() {
-        return documentPositionOrder;
+    public String getText() {
+        return text;
     }
 
     public void setDocumentPositionOrder(Integer documentPositionOrder) {
         this.documentPositionOrder = documentPositionOrder;
     }
 
-    public String getRequirementParent() {
-        return requirementParent;
+    public Integer getDocumentPositionOrder() {
+        return documentPositionOrder;
     }
 
     public void setRequirementParent(String requirementParent) {
         this.requirementParent = requirementParent;
+    }
+
+    public String getRequirementParent() {
+        return requirementParent;
     }
 
 }
