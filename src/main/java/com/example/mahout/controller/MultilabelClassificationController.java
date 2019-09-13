@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/upc/classifier-component/multiclassifier")
-@Api(value = "Facade", produces = MediaType.APPLICATION_JSON_VALUE)
+@Api(value = "Multilabel Classifier Controller", produces = MediaType.APPLICATION_JSON_VALUE)
 public class MultilabelClassificationController {
 
     @Autowired
