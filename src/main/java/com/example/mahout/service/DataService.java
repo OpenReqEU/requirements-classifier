@@ -99,7 +99,7 @@ public class DataService {
         double fp = stats.get("false_positives");
         double fn = stats.get("false_negatives");
         double tn = stats.get(TRUE_NEGATIVES);
-        double headings = reqToTest.size() - reqToTestFiltered.size();
+        double headings = (double) reqToTest.size() - (double) reqToTestFiltered.size();
         double new_total = tp + fp + fn + tn + headings;
 
         //Update accuracy: add headings as TN
