@@ -1,16 +1,13 @@
 swagger: '2.0'
 info:
+  version: 'v3.3'
   description: |+
     REST API that provides a requirements classifier. The classifier is based on a Naive Bayes implemented using Apache Mahout (https://mahout.apache.org/)
-
     This service implements two different classifiers:
-
-    **· Binary classifier:** given a property value V for the *requirement_type* property, the binary classifier builds a classifier to evaluate if a requirement is a member of the property value class (*requirement_type = 'V'*) or if it is not (*requirement_type = 'Prose'*).
-
-    **· Multilabel classifier:** given the domain of property values {V}, the multilabel classifier is used for properties that can have more than one value for each item.
-
+    **· Multiclass classifier:** given a property P for the *requirement_type* property which identifies a model, the multiclass classifier builds a multiclass model for each possible value {V} of the property P in the dataset. Each requirement is related to a single value V.
+    **· Multilabel classifier:** given the domain of property values {V}, the multilabel classifier is used for properties that can have more than one value V for each item.
   title: Requirement Classifier API
-host: 'https://api.openreq.eu/requirements-classifier'
+host: '217.172.12.199:9402'
 basePath: /
 tags:
 - name: binary-classification-controller
@@ -55,7 +52,7 @@ paths:
         description: Request with the requirements to classify
         required: true
         schema:
-          $ref: '#/definitions/Classify requirements list'
+          $ref: '#/definitions/ClassifyRequirementsList'
       responses:
         '200':
           description: OK
@@ -101,7 +98,7 @@ paths:
         description: Request with the requirements to train the model
         required: true
         schema:
-          $ref: '#/definitions/Requirements list'
+          $ref: '#/definitions/RequirementsList'
       - name: url
         in: query
         description: The endpoint where the result of the operation will be returned
@@ -152,7 +149,7 @@ paths:
         description: Request with the requirements to train and update the model
         required: true
         schema:
-          $ref: '#/definitions/Requirements list'
+          $ref: '#/definitions/RequirementsList'
       responses:
         '200':
           description: OK
@@ -257,7 +254,7 @@ paths:
         description: Request with the requirements to train
         required: true
         schema:
-          $ref: '#/definitions/Classify requirements list'
+          $ref: '#/definitions/ClassifyRequirementsList'
       responses:
         '200':
           description: OK
@@ -312,7 +309,7 @@ paths:
         description: Request with the requirements to train
         required: true
         schema:
-          $ref: '#/definitions/Multiclassify requirements list'
+          $ref: '#/definitions/MulticlassifyRequirementsList'
       - name: url
         in: query
         description: The endpoint where the result of the operation will be returned
@@ -339,15 +336,11 @@ paths:
       summary: Update multiple models
       description: |-
         Given a list of requirements and a company name, a multidimensional classifier (i.e. multiple models) is updated based on the values of a given *property* which are set as a *requirementParts* field. Given a *requirementPart* object:
-
         - *id*: the *property* of the classifier (i.e. *reqDomains*)
         - *text*: a \n separated list with the values of the *requirementPart* (i.e. the *property*)
-
         This method results in the update of a set of models, which are created as follows:
-
         - If *modelList* is neither null nor empty, a model is updated per each value of *property* in *modelList*
         - Else if *modelList* is null or empty, a model is updated per each possible value of *property* found in the dataset
-
          Each model is a sub-classifier evaluating whether a given requirement can be classified as a specific value of the *property* field.
       operationId: updateUsingPUT_1
       consumes:
@@ -383,7 +376,7 @@ paths:
         description: Request with the requirements to train
         required: true
         schema:
-          $ref: '#/definitions/Multiclassify requirements list'
+          $ref: '#/definitions/MulticlassifyRequirementsList'
       responses:
         '200':
           description: OK
@@ -404,9 +397,7 @@ paths:
       summary: Delete multiple models
       description: |-
         Given a **company** and a **property**, delete the associated stored models for the given *property* as follows:
-
         - If *modelList* is neither null nor empty, a model is deleted per each value of *property* in *modelList*
-
         - Else if *modelList* is null or empty, all models of the given *property* are deleted
       operationId: deleteUsingDELETE
       produces:
@@ -535,7 +526,7 @@ paths:
         description: Request with the requirements to test
         required: true
         schema:
-          $ref: '#/definitions/Multiclassify requirements list'
+          $ref: '#/definitions/MulticlassifyRequirementsList'
       responses:
         '200':
           description: OK
@@ -590,7 +581,7 @@ paths:
         description: Request with the requirements to test
         required: true
         schema:
-          $ref: '#/definitions/Requirements list'
+          $ref: '#/definitions/RequirementsList'
       responses:
         '200':
           description: OK
@@ -606,7 +597,7 @@ paths:
           description: Not Found
       deprecated: false
 definitions:
-  Classify Requirement:
+  ClassifyRequirement:
     type: object
     properties:
       documentPositionOrder:
@@ -628,35 +619,18 @@ definitions:
         description: Text with the requirement information
     title: Classify Requirement
     description: A project requirement
-  Classify requirements list:
+  ClassifyRequirementsList:
     type: object
     properties:
       requirements:
         type: array
         description: Requirements list
         items:
-          $ref: '#/definitions/Classify Requirement'
-    title: Classify requirements list
+          $ref: '#/definitions/ClassifyRequirement'
+    title: ClassifyRequirementsList
     description: A project reqs list
   ConfusionMatrixStats:
     type: object
-    properties:
-      false_negatives:
-        type: integer
-        format: int32
-        description: False negatives
-      false_positives:
-        type: integer
-        format: int32
-        description: False positives
-      true_negatives:
-        type: integer
-        format: int32
-        description: True negatives
-      true_positives:
-        type: integer
-        format: int32
-        description: True positives
     title: ConfusionMatrixStats
   DomainStats:
     type: object
@@ -665,7 +639,7 @@ definitions:
         type: number
         format: double
         description: Accuracy
-      confusion_matrix:
+      confusionMatrix:
         type: object
         description: Confusion matrix
         additionalProperties:
@@ -678,24 +652,24 @@ definitions:
         type: number
         format: double
         description: Reliability
-      reliability_std_deviation:
+      reliabilityStdDeviation:
         type: number
         format: double
         description: Reliability standard deviation
-      weighted_f1_score:
+      weightedF1Score:
         type: number
         format: double
         description: Weighted F1 score
-      weighted_precision:
+      weightedPrecision:
         type: number
         format: double
         description: Weighted precision
-      weighted_recall:
+      weightedRecall:
         type: number
         format: double
         description: Weighted recall
     title: DomainStats
-  Multiclassify Requirement:
+  MulticlassifyRequirement:
     type: object
     properties:
       documentPositionOrder:
@@ -712,21 +686,21 @@ definitions:
         type: array
         description: Aggregation of RequirementParts out of which the requirement consists of. This aggregation provides a mechanism for specifying requirement fragments or additional information for the Requirement.
         items:
-          $ref: '#/definitions/Requirement Part'
+          $ref: '#/definitions/RequirementPart'
       text:
         type: string
         description: Text with the requirement information
     title: Multiclassify Requirement
     description: A project requirement
-  Multiclassify requirements list:
+  MulticlassifyRequirementsList:
     type: object
     properties:
       requirements:
         type: array
         description: Requirements list
         items:
-          $ref: '#/definitions/Multiclassify Requirement'
-    title: Multiclassify requirements list
+          $ref: '#/definitions/MulticlassifyRequirement'
+    title: MulticlassifyRequirementsList
     description: A project reqs list
   Recommendation:
     type: object
@@ -736,7 +710,7 @@ definitions:
         format: double
       requirement:
         type: string
-      requirement_type:
+      requirementType:
         type: string
     title: Recommendation
   RecommendationList:
@@ -763,7 +737,7 @@ definitions:
         type: string
         example: REQ001
         description: The parent Requirement of the current Requirement for hierarchical structure in which the parent and child are tied together and cannot be understood without each other.
-      requirement_type:
+      requirementType:
         type: string
         example: requirement
         description: Requirement type
@@ -773,7 +747,7 @@ definitions:
         description: Text with the requirement information
     title: Requirement
     description: A project requirement
-  Requirement Part:
+  RequirementPart:
     type: object
     properties:
       id:
@@ -789,7 +763,7 @@ definitions:
         description: 'Content of a requirement part. Use the value of your property for multi-label classification. In case of multiple values, use a \n separated list'
     title: Requirement Part
     description: 'A part of which a Requirement is composed of (not a sub-requirement). RequirementParts are an extension mechanism for specifying additional information related to a Requirement. For example, RequirementPart can be used to include fragments of Requirement content or additional  properties of Requirement.'
-  Requirements list:
+  RequirementsList:
     type: object
     properties:
       requirements:
@@ -888,11 +862,11 @@ definitions:
         type: number
         format: double
         description: Accuracy
-      false_negatives:
+      falseNegatives:
         type: integer
         format: int32
         description: False negatives
-      false_positives:
+      falsePositives:
         type: integer
         format: int32
         description: False positives
@@ -904,27 +878,27 @@ definitions:
         type: number
         format: double
         description: Reliability
-      reliability_std_deviation:
+      reliabilityStdDeviation:
         type: number
         format: double
         description: Reliability standard deviation
-      true_negatives:
+      trueNegatives:
         type: integer
         format: int32
         description: True negatives
-      true_positives:
+      truePositives:
         type: integer
         format: int32
         description: True positives
-      weighted_f1_score:
+      weightedF1Score:
         type: number
         format: double
         description: Weighted F1 score
-      weighted_precision:
+      weightedPrecision:
         type: number
         format: double
         description: Weighted precision
-      weighted_recall:
+      weightedRecall:
         type: number
         format: double
         description: Weighted recall

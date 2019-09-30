@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/upc/classifier-component")
-@Api(value = "MahoutAPI", produces = MediaType.APPLICATION_JSON_VALUE)
+@Api(value = "Multiclass Classifier Controller", produces = MediaType.APPLICATION_JSON_VALUE)
 public class BinaryClassificationController {
 
     @Autowired
