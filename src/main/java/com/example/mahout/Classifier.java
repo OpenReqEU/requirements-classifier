@@ -5,6 +5,7 @@ import com.example.mahout.DAO.CompanyModelDAOMySQL;
 import com.example.mahout.entity.CompanyModel;
 import com.example.mahout.entity.Requirement;
 import com.example.mahout.entity.ResultId;
+import com.example.mahout.service.ClassificationService;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Multiset;
 import org.apache.commons.io.FilenameUtils;
@@ -27,6 +28,8 @@ import org.apache.mahout.math.RandomAccessSparseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
 import org.apache.mahout.vectorizer.TFIDF;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,6 +45,8 @@ import java.util.Map;
 
 
 public class Classifier {
+
+    private static final Logger logger = LoggerFactory.getLogger(ClassificationService.class);
 
     public static final String TMP_FILES = "./tmpFiles/";
     private CompanyModelDAO companyModelDAO = new CompanyModelDAOMySQL();
@@ -109,14 +114,14 @@ public class Classifier {
         File dictionary = new File(dictionaryPath);
         File frequencies = new File(frequenciesPath);
 
-        model.delete();
-        labelindex.delete();
-        dictionary.delete();
-        frequencies.delete();
         try {
+            Files.delete(model.toPath());
+            Files.delete(labelindex.toPath());
+            Files.delete(dictionary.toPath());
+            Files.delete(frequencies.toPath());
             Files.delete(Paths.get(TMP_FILES + resultId.getId()));
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         }
 
         System.out.println("Files deleted correctly\n");

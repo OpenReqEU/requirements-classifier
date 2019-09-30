@@ -2,7 +2,6 @@ package com.example.mahout.service;
 
 import com.example.mahout.entity.Requirement;
 import com.example.mahout.entity.RequirementList;
-import com.example.mahout.entity.RequirementType;
 import com.example.mahout.entity.Stats;
 import com.example.mahout.entity.siemens.SiemensRequirement;
 import com.example.mahout.entity.siemens.SiemensRequirementList;
@@ -13,45 +12,39 @@ import org.apache.lucene.analysis.en.PorterStemFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.util.Version;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 @Service
 public class DataService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ClassificationService.class);
+    public static final String TRUE_NEGATIVES = "true_negatives";
+
     public List<Requirement> preprocess(List<Requirement> requirements) throws Exception {
         List<Requirement> filteredRequirements;
         filteredRequirements = removeEmptyRequirements(requirements);
-//        filteredRequirements = removeHeaders(filteredRequirements);
-        filteredRequirements = applyNPLProcess(filteredRequirements);
-        return filteredRequirements;
+        return applyNPLProcess(filteredRequirements);
     }
 
     public List<Requirement> removeHeaders(List<Requirement> requirements) {
         List<Requirement> filteredRequirements = new ArrayList<>();
         for (int i = 0; i < requirements.size(); ++i) {
             Requirement requirement = requirements.get(i);
-            /*if (requirement.getRequirement_type() != null &&
-                    !requirement.getRequirement_type().equals("Heading"))
-                filteredRequirements.add(requirement);
-            else if (requirement.getRequirement_type() == null)
-                filteredRequirements.add(requirement);*/
-            //FIXME headers parsing: now only if text is not null
             if (requirement.getText() != null && !requirement.getText().isEmpty())
                 filteredRequirements.add(requirement);
         }
-        System.out.println("Input: " + requirements.size() + " requirements, " + filteredRequirements.size() + " after filtering (header sections)");
+        logger.info("Input: " + requirements.size() + " requirements, " + filteredRequirements.size() + " after filtering (header sections)");
         return filteredRequirements;
     }
 
-    private List<Requirement> applyNPLProcess(List<Requirement> requirements) throws Exception {
+    private List<Requirement> applyNPLProcess(List<Requirement> requirements) throws IOException {
 
         
         for (int i = 0; i < requirements.size(); ++i) {
@@ -85,7 +78,7 @@ public class DataService {
         return requirements;
     }
 
-    private List<Requirement> removeEmptyRequirements(List<Requirement> requirements) throws Exception {
+    private List<Requirement> removeEmptyRequirements(List<Requirement> requirements) {
         List<Requirement> filteredRequirements = new ArrayList<>();
         for (int i = 0; i < requirements.size(); ++i) {
             Requirement requirement = requirements.get(i);
@@ -94,49 +87,25 @@ public class DataService {
                 filteredRequirements.add(requirement);
             }
         }
-        System.out.println("Input: " + requirements.size() + " requirements, " + filteredRequirements.size() + " after filtering (empty req)");
+        logger.info("Input: " + requirements.size() + " requirements, " + filteredRequirements.size() + " after filtering (empty req)");
         return filteredRequirements;
     }
 
-    public RequirementList parseSiemensToOpenReq(SiemensRequirementList siemensRequirementList) {
-        RequirementList requirementList = new RequirementList();
-        List<Requirement> requirements = new ArrayList<>();
-        for (SiemensRequirement siemensRequirement : siemensRequirementList.getReqs()) {
-            Requirement requirement = new Requirement();
-            requirement.setId(siemensRequirement.getToolId());
-            if (!siemensRequirement.getHeading().isEmpty()) {
-                requirement.setText(siemensRequirement.getHeading());
-                requirement.setRequirement_type("Heading");
-            } else {
-                requirement.setText(siemensRequirement.getText());
-                requirement.setRequirement_type(siemensRequirement.getReqType());
-            }
-            requirement.setReqDomains("reqDomains", siemensRequirement.getReqDomains());
-            requirements.add(requirement);
-        }
-        requirementList.setRequirements(requirements);
-        return requirementList;
-    }
-
-    public HashMap<String, Double> applyStats(List<Requirement> reqToTrain, List<Requirement> reqToTrainFiltered,
-                                                     List<Requirement> reqToTest, List<Requirement> reqToTestFiltered,
+    public Map<String, Double> applyStats(List<Requirement> reqToTest, List<Requirement> reqToTestFiltered,
                                                      HashMap<String, Double> stats) {
 
         //Get old data
         double tp = stats.get("true_positives");
         double fp = stats.get("false_positives");
         double fn = stats.get("false_negatives");
-        double tn = stats.get("true_negatives");
+        double tn = stats.get(TRUE_NEGATIVES);
         double headings = reqToTest.size() - reqToTestFiltered.size();
         double new_total = tp + fp + fn + tn + headings;
 
         //Update accuracy: add headings as TN
         double accuracy = (tp + tn + headings) / new_total;
         stats.put("accuracy", accuracy);
-        stats.put("true_negatives", tn + headings);
-
-        //Update reliability: use new accuracy
-//        stats.put("reliability", ((tn + headings) / (tn + headings + fp)) /2);
+        stats.put(TRUE_NEGATIVES, tn + headings);
 
         //Update weighted precision
         double precision_def = tp + fp != 0 ? tp / (tp + fp) : 0;
@@ -175,7 +144,7 @@ public class DataService {
         return builder.toString();
     }
 
-    public HashMap<String, Double> getStats(String statistics, String positives_negatives_matrix) throws IOException {        /*Get true and false positives splitted*/
+    public Map<String, Double> getStats(String statistics, String positives_negatives_matrix) throws IOException {        /*Get true and false positives splitted*/
         String[] positives_negatives =  positives_negatives_matrix.split("\n");
         String[] positives=positives_negatives[0].split("\t");
 
@@ -227,7 +196,7 @@ public class DataService {
         double weighted_f1_score_value = Double.parseDouble(weighted_f1_score_num);
 
 
-        HashMap<String, Double> results = new HashMap<String, Double>();
+        HashMap<String, Double> results = new HashMap<>();
 
         results.put("kappa", kappa_value);
         results.put("accuracy", accuracy_value);
@@ -247,7 +216,7 @@ public class DataService {
     public HashMap<String,RequirementList> mapByDomain(RequirementList request, String property) throws Exception {
         HashMap<String, RequirementList> domainRequirementsMap = new HashMap<>();
         for (Requirement r : request.getRequirements()) {
-            String domains[] = r.getReqDomains(property).split("\n");
+            String[] domains = r.getReqDomains(property).split("\n");
             for (String domain : domains) {
                 if (!domain.trim().isEmpty()) {
                     if (domainRequirementsMap.containsKey(domain)) {
@@ -261,67 +230,5 @@ public class DataService {
             }
         }
         return domainRequirementsMap;
-    }
-
-    @Deprecated
-    public Stats getWeightedStats(HashMap<String, Stats> stats, HashMap<String, Integer> domainSize) {
-        Stats globalStats = new Stats();
-        Integer domainGlobalSize = domainSize.values().stream().mapToInt(Integer::intValue).sum();
-
-        double kappa, accuracy, reliability, reliability_std_deviation, weighted_precision, weighted_recall,
-                weighted_f1_score;
-        kappa = accuracy = reliability = reliability_std_deviation = weighted_precision = weighted_recall =
-                weighted_f1_score = 0.;
-        for (String domain : stats.keySet()) {
-            double factor = (double) domainSize.get(domain) / (double) domainGlobalSize;
-            Stats domainStats = stats.get(domain);
-            kappa += domainStats.getKappa() * factor;
-            accuracy += domainStats.getAccuracy() * factor;
-            reliability += domainStats.getReliability() * factor;
-            reliability_std_deviation += domainStats.getReliability_std_deviation() * factor;
-            weighted_precision += domainStats.getWeighted_precision() * factor;
-            weighted_recall += domainStats.getWeighted_recall() * factor;
-            weighted_f1_score += domainStats.getWeighted_f1_score() * factor;
-        }
-        globalStats.setAccuracy(accuracy);
-        globalStats.setKappa(kappa);
-        globalStats.setReliability(reliability);
-        globalStats.setReliability_std_deviation(reliability_std_deviation);
-        globalStats.setWeighted_precision(weighted_precision);
-        globalStats.setWeighted_recall(weighted_recall);
-        globalStats.setWeighted_f1_score(weighted_f1_score);
-
-
-        //Aggregation
-        Integer tp, tn, fp, fn;
-        tp = tn = fp = fn = 0;
-        for (String domain : stats.keySet()) {
-            Stats domainStats = stats.get(domain);
-            tp += domainStats.getTrue_positives();
-            tn += domainStats.getTrue_negatives();
-            fp += domainStats.getFalse_positives();
-            fn += domainStats.getFalse_negatives();
-            System.out.println("Domain " + domain + "\nTP = " + domainStats.getTrue_positives() + "\nFN = " + domainStats.getFalse_negatives() + "\nFP = " + domainStats.getFalse_positives() + "\nTN = " + domainStats.getTrue_negatives() + "\n");
-        }
-
-        //Mean
-//        Double tp, tn, fp, fn;
-//        tp = tn = fp = fn = 0.;
-//        for (String domain : stats.keySet()) {
-//            double factor = (double) domainSize.get(domain) / (double) domainGlobalSize;
-//            Stats domainStats = stats.get(domain);
-//            tp += domainStats.getTrue_positives() * factor;
-//            tn += domainStats.getTrue_negatives() * factor;
-//            fn += domainStats.getFalse_negatives() * factor;
-//            fp += domainStats.getFalse_positives() * factor;
-//            System.out.println("Domain " + domain + "\nTP = " + domainStats.getTrue_positives() + "\nFN = " + domainStats.getFalse_negatives() + "\nFP = " + domainStats.getFalse_positives() + "\nTN = " + domainStats.getTrue_negatives() + "\n");
-//        }
-
-        globalStats.setTrue_positives(tp.intValue());
-        globalStats.setTrue_negatives(tn.intValue());
-        globalStats.setFalse_positives(fp.intValue());
-        globalStats.setFalse_negatives(fn.intValue());
-
-        return globalStats;
     }
 }

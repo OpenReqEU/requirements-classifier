@@ -182,7 +182,7 @@ public class ClassificationService {
         logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getInputStream()))));
         logger.info("Done");
 
-        return dataService.applyStats(reqToTrain, reqToTrainFiltered, reqToTest, reqToTestFiltered, dataService.getStats(statistics, positives_negatives_matrix));
+        return dataService.applyStats(reqToTest, reqToTestFiltered, (HashMap<String, Double>) dataService.getStats(statistics, positives_negatives_matrix));
 
 
     }
@@ -257,7 +257,7 @@ public class ClassificationService {
                 response.setCode(200);
                 response.setId(id.getId());
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
                 response.setMessage(e.getMessage());
                 response.setCode(500);
                 response.setId(id.getId());
@@ -668,7 +668,7 @@ public class ClassificationService {
                 response.setCode(200);
                 response.setId(id.getId());
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error(e.getLocalizedMessage());
                 response.setMessage(e.getMessage());
                 response.setCode(500);
                 response.setId(id.getId());
@@ -830,7 +830,7 @@ public class ClassificationService {
             }
             return models;
         } catch (SQLException | IOException e) {
-            e.printStackTrace();
+            logger.error(e.getLocalizedMessage());
         }
         return null;
     }
