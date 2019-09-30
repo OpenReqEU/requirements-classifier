@@ -11,9 +11,17 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Random;
 
 public class AsyncService {
+
+    private static Random random = new Random();
+
+    public AsyncService() throws NoSuchAlgorithmException {
+
+    }
 
     public static void updateClient(Response responseObj, String url) {
         HttpClient httpclient = HttpClients.createDefault();
@@ -22,19 +30,14 @@ public class AsyncService {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             httppost.setEntity(new StringEntity(objectMapper.writeValueAsString(responseObj), ContentType.APPLICATION_JSON));
-            int httpStatus;
             HttpResponse response = httpclient.execute(httppost);
-            httpStatus = response.getStatusLine().getStatusCode();
-            if ((httpStatus >= 200) && (httpStatus < 300)) System.out.println("The connection with the external server was successful");
-            else System.out.println("An error occurred when connecting with the external server");
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     public static ResultId getId() {
-        Random rand = new Random();
-        return new ResultId(System.currentTimeMillis() + "_" + rand.nextInt(1000));
+        return new ResultId(System.currentTimeMillis() + "_" + random.nextInt(1000));
     }
 
 }

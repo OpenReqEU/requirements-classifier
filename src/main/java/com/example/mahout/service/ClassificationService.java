@@ -10,10 +10,13 @@ import com.example.mahout.entity.*;
 import com.google.gson.Gson;
 import org.apache.commons.io.FileUtils;
 import org.apache.mahout.common.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,19 +29,35 @@ import java.util.stream.Collectors;
 @Service
 public class ClassificationService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ClassificationService.class);
+
     public static final String SEQ_FILES = "./seqFiles/";
     public static final String TEST = "/test";
     public static final String BIN_BASH = "/bin/bash";
     public static final String CONFIG_ENVIRONMENT_TXT = "./config/environment.txt";
+    public static final String $_HADOOP_HOME_BIN_HADOOP_FS_PUT = "$HADOOP_HOME/bin/hadoop fs -put ";
+    public static final String $_MAHOUT_HOME_BIN_MAHOUT_SEQ_2_SPARSE_I = "$MAHOUT_HOME/bin/mahout seq2sparse -i /";
+    public static final String $_MAHOUT_HOME_BIN_MAHOUT_TRAINNB_I = "$MAHOUT_HOME/bin/mahout trainnb -i /";
+    public static final String $_HADOOP_HOME_BIN_HADOOP_FS_GETMERGE = "$HADOOP_HOME/bin/hadoop fs -getmerge /";
+    public static final String O = " -o /";
+    public static final String TFIDF_VECTORS_LI = "/tfidf-vectors -li /";
+    public static final String LABELINDEX_O = "/labelindex -o /";
+    public static final String MODEL_OW_C = "/model -ow -c";
+    public static final String TEST1 = "/test";
+    public static final String DICTIONARY_FILE_0 = "/dictionary.file-0";
+    public static final String DF_COUNT = "/df-count";
+    public static final String $_HADOOP_HOME_BIN_HADOOP_FS_RM_R = "$HADOOP_HOME/bin/hadoop fs -rm -r /";
+    public static final String $_HADOOP_HOME_BIN_HADOOP_FS_GET = "$HADOOP_HOME/bin/hadoop fs -get /";
+    public static final String PROSE = "Prose";
 
-    private static CompanyModelDAOMySQL fileModelSQL;
+    private CompanyModelDAOMySQL fileModelSQL;
 
 
     @Autowired
     private DataService dataService;
 
     public Map<String, Double> testOne(List<Requirement> reqToTrain, List<Requirement> reqToTest, String enterpriseName, int test_num) throws Exception {
-        System.out.println("Testing test set number " + test_num);
+        logger.info("Testing test set number " + test_num);
 
         String pathToSeq = SEQ_FILES + enterpriseName + TEST + test_num;
 
@@ -49,14 +68,14 @@ public class ClassificationService {
         ToSeqFile.ReqToSeq(reqToTrainFiltered,pathToSeq);
 
         /*Create the process and execute it in order to train mahout and get the results */
-        ProcessBuilder pb_upload_files =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put " +pathToSeq + " /" + enterpriseName);
-        ProcessBuilder pb_generate_vectors =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
-        ProcessBuilder pb_train =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
-        ProcessBuilder pb_download_dictionary =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/dictionary.file-0 ./tmpFiles/"+enterpriseName +"/test"+test_num+"/dictionary.file-0");
-        ProcessBuilder pb_download_frequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./tmpFiles/"+enterpriseName +"/test"+test_num+"/df-count");
+        ProcessBuilder pb_upload_files =  new ProcessBuilder(BIN_BASH, "-c", $_HADOOP_HOME_BIN_HADOOP_FS_PUT +pathToSeq + " /" + enterpriseName);
+        ProcessBuilder pb_generate_vectors =  new ProcessBuilder(BIN_BASH, "-c", $_MAHOUT_HOME_BIN_MAHOUT_SEQ_2_SPARSE_I +enterpriseName+ O +enterpriseName);
+        ProcessBuilder pb_train =  new ProcessBuilder(BIN_BASH, "-c", $_MAHOUT_HOME_BIN_MAHOUT_TRAINNB_I +enterpriseName+ TFIDF_VECTORS_LI +enterpriseName+ LABELINDEX_O +enterpriseName+ MODEL_OW_C);
+        ProcessBuilder pb_download_dictionary =  new ProcessBuilder(BIN_BASH, "-c", $_HADOOP_HOME_BIN_HADOOP_FS_GETMERGE +enterpriseName+"/dictionary.file-0 ./tmpFiles/"+enterpriseName + TEST1 +test_num+ DICTIONARY_FILE_0);
+        ProcessBuilder pb_download_frequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./tmpFiles/"+enterpriseName +"/test"+test_num+ DF_COUNT);
         ProcessBuilder pb_upload_test_set =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put ./tmpFiles/"+enterpriseName+"/test"+test_num + "/testSet /"+enterpriseName+"/testSet");
         ProcessBuilder pb_test =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout testnb -i /"+enterpriseName+"/testSet -l /"+enterpriseName+"/labelindex -m /"+enterpriseName+"/model -ow -o /" + enterpriseName+"/results");
-        ProcessBuilder pb_delete_hadoop_files = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
+        ProcessBuilder pb_delete_hadoop_files = new ProcessBuilder(BIN_BASH, "-c", $_HADOOP_HOME_BIN_HADOOP_FS_RM_R +enterpriseName);
 
 
         /* Set the enviroment configuration */
@@ -76,64 +95,64 @@ public class ClassificationService {
             }
         }
 
-        System.out.println("Process created and configured");
+        logger.info("Process created and configured");
 
         /* Execute all processes one by one and wwait for them to finish */
-        System.out.println("Uploading files");
+        logger.info("Uploading files");
         Process upload_files = pb_upload_files.start();
         upload_files.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(upload_files.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(upload_files.getErrorStream()))));
-        System.out.println("Done");
+        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(upload_files.getInputStream()))));
+        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(upload_files.getErrorStream()))));
+        logger.info("Done");
 
-        System.out.println("Generating vectors");
+        logger.info("Generating vectors");
         Process generate_vectors = pb_generate_vectors.start();
         generate_vectors.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(generate_vectors.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(generate_vectors.getErrorStream()))));
-        System.out.println("Done");
+        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(generate_vectors.getInputStream()))));
+        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(generate_vectors.getErrorStream()))));
+        logger.info("Done");
 
-        System.out.println("Training");
+        logger.info("Training");
         Process train = pb_train.start();
         train.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getErrorStream()))));
-        System.out.println("Done");
+        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getInputStream()))));
+        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getErrorStream()))));
+        logger.info("Done");
 
-        System.out.println("Downloading directory file");
+        logger.info("Downloading directory file");
         Process download_dictionary = pb_download_dictionary.start();
         download_dictionary.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_dictionary.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_dictionary.getErrorStream()))));
-        System.out.println("Done");
+        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_dictionary.getInputStream()))));
+        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_dictionary.getErrorStream()))));
+        logger.info("Done");
 
-        System.out.println("Downloading frequency file");
+        logger.info("Downloading frequency file");
         Process download_frequencies = pb_download_frequencies.start();
         download_frequencies.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_frequencies.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_frequencies.getErrorStream()))));
-        System.out.println("Done");
+        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_frequencies.getInputStream()))));
+        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_frequencies.getErrorStream()))));
+        logger.info("Done");
 
-        System.out.println("Creating test set");
+        logger.info("Creating test set");
         String tmpPath = "./tmpFiles/" + enterpriseName + "/test" + test_num;
         String freqPath = tmpPath + "/df-count";
         String dictionaryPath = tmpPath + "/dictionary.file-0";
         ReqToTestSet.createTestSet(freqPath, dictionaryPath, reqToTestFiltered, tmpPath +"/");
-        System.out.println("Done");
+        logger.info("Done");
 
-        System.out.println("Uploading testSet");
+        logger.info("Uploading testSet");
         Process upload_test_set = pb_upload_test_set.start();
         upload_test_set.waitFor();
-        System.out.println("Done");
+        logger.info("Done");
 
-        System.out.println("Testing model");
+        logger.info("Testing model");
         Process test = pb_test.start();
         train.waitFor();
         BufferedReader output_error_test = new BufferedReader(new InputStreamReader(test.getErrorStream()));
-        System.out.println("Done");
+        logger.info("Done");
 
         /* Parse the output of the process to get the disered results */
-        System.out.println("Getting stats");
+        logger.info("Getting stats");
         StringBuilder builder = new StringBuilder();
         StringBuilder positivess_negatives_builder= new StringBuilder();
         String line2;
@@ -143,8 +162,8 @@ public class ClassificationService {
                 builder.append(line2 + "\n");
             if (line2.contains("Confusion Matrix")) {
                 /* Skip the 2 lines we don't want*/
-                output_error_test.readLine();
-                output_error_test.readLine();
+                output_error_test.readLine(); // NOSONAR
+                output_error_test.readLine();// NOSONAR
                 /* Read the 2 lines containing the numbers */
                 line2=output_error_test.readLine();
                 positivess_negatives_builder.append(line2+"\n");
@@ -156,12 +175,12 @@ public class ClassificationService {
         String positives_negatives_matrix = positivess_negatives_builder.toString();
 
 
-        System.out.println("Deleting hadoop files");
+        logger.info("Deleting hadoop files");
         Process delete_hadoop_files = pb_delete_hadoop_files.start();
         delete_hadoop_files.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getErrorStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getInputStream()))));
-        System.out.println("Done");
+        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getErrorStream()))));
+        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getInputStream()))));
+        logger.info("Done");
 
         return dataService.applyStats(reqToTrain, reqToTrainFiltered, reqToTest, reqToTestFiltered, dataService.getStats(statistics, positives_negatives_matrix));
 
@@ -178,9 +197,9 @@ public class ClassificationService {
         HashMap<String, ArrayList<List<Requirement>>> sets = SamplesCreator.generateTestSets(reqToTest,n);
         ArrayList<List<Requirement>> trainSets = sets.get("train_sets");
         ArrayList<List<Requirement>> testSets = sets.get("test_sets");
-        System.out.println("Test sets generated");
+        logger.info("Test sets generated");
 
-        String pathToSeq = "./seqFiles/" + enterpriseName;
+        String pathToSeq = ClassificationService.SEQ_FILES + enterpriseName;
 
         /* Initialize hashMap of results */
         HashMap<String, Double> total_results = new HashMap<>();
@@ -206,7 +225,7 @@ public class ClassificationService {
             partialStats.add(new Stats(recommendations, test, property));
         }
 
-        System.out.println("Total results calculated");
+        logger.info("Total results calculated");
 
         Stats result = new Stats(total_results.get("kappa"), total_results.get("accuracy"), total_results.get("reliability"),
                 total_results.get("reliability_std_deviation"), total_results.get("weighted_precision"), total_results.get("weighted_recall"),
@@ -214,7 +233,7 @@ public class ClassificationService {
                 total_results.get("false_negatives").intValue(), total_results.get("true_negatives").intValue());
 
         Gson gson = new Gson();
-        System.out.println("Total results transformed to JSON:\n" + gson.toJson(result));
+        logger.info("Total results transformed to JSON:\n" + gson.toJson(result));
 
         /* Delete sequential file */
         File sequential = new File(pathToSeq);
@@ -223,7 +242,7 @@ public class ClassificationService {
         File tmpFiles = new File("./tmpFiles/"+enterpriseName);
         FileUtils.deleteDirectory(tmpFiles);
 
-        System.out.println("Directories deleted, train&test functionality finished.");
+        logger.info("Directories deleted, train&test functionality finished.");
         return result;
     }
 
@@ -269,108 +288,109 @@ public class ClassificationService {
         ProcessBuilder pb_generate_vectors =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout seq2sparse -i /" +enterpriseName+" -o /"+enterpriseName);
         ProcessBuilder pb_train =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout trainnb -i /"+enterpriseName+"/tfidf-vectors -li /"+enterpriseName+"/labelindex -o /"+enterpriseName+"/model -ow -c");
         ProcessBuilder pb_download_model =  new ProcessBuilder(BIN_BASH, "-c", "mkdir -p ./data/"+enterpriseName+" && $HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/model ./data/"+enterpriseName+"/");
-        ProcessBuilder pb_download_labelindex =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
-        ProcessBuilder pb_download_dictionary =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -get /"+enterpriseName+"/dictionary.file-0 ./data/"+enterpriseName+"/dictionary.file-0");
+        ProcessBuilder pb_download_labelindex =  new ProcessBuilder(BIN_BASH, "-c", $_HADOOP_HOME_BIN_HADOOP_FS_GET +enterpriseName+"/labelindex ./data/"+enterpriseName+"/");
+        ProcessBuilder pb_download_dictionary =  new ProcessBuilder(BIN_BASH, "-c", $_HADOOP_HOME_BIN_HADOOP_FS_GET+enterpriseName+"/dictionary.file-0 ./data/"+enterpriseName+"/dictionary.file-0");
         ProcessBuilder pb_download_frequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./data/"+enterpriseName+"/df-count");
         ProcessBuilder pb_delete_hadoop_files = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
 
 
         /* Set the enviroment configuration */
-        BufferedReader environmentFile = new BufferedReader(new FileReader(new File("./config/environment.txt")));
-        String line;
-        while ((line = environmentFile.readLine()) != null) {
-            String env_var[] = line.split(",");
-            pb_upload_files.environment().put(env_var[0],env_var[1]);
-            pb_generate_vectors.environment().put(env_var[0],env_var[1]);
-            pb_train.environment().put(env_var[0],env_var[1]);
-            pb_download_model.environment().put(env_var[0],env_var[1]);
-            pb_download_labelindex.environment().put(env_var[0],env_var[1]);
-            pb_download_dictionary.environment().put(env_var[0],env_var[1]);
-            pb_download_frequencies.environment().put(env_var[0],env_var[1]);
-            pb_delete_hadoop_files.environment().put(env_var[0],env_var[1]);
+        try(BufferedReader environmentFile = new BufferedReader(new FileReader(new File(CONFIG_ENVIRONMENT_TXT)))) {
+            String line;
+            while ((line = environmentFile.readLine()) != null) {
+                String env_var[] = line.split(",");
+                pb_upload_files.environment().put(env_var[0], env_var[1]);
+                pb_generate_vectors.environment().put(env_var[0], env_var[1]);
+                pb_train.environment().put(env_var[0], env_var[1]);
+                pb_download_model.environment().put(env_var[0], env_var[1]);
+                pb_download_labelindex.environment().put(env_var[0], env_var[1]);
+                pb_download_dictionary.environment().put(env_var[0], env_var[1]);
+                pb_download_frequencies.environment().put(env_var[0], env_var[1]);
+                pb_delete_hadoop_files.environment().put(env_var[0], env_var[1]);
 
+            }
+
+
+            /* Execute all processes and wait for them to finish */
+            Process upload_files = pb_upload_files.start();
+            int exit_upload = upload_files.waitFor();
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(upload_files.getInputStream()))));
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(upload_files.getErrorStream()))));
+
+            Process generate_vectors = pb_generate_vectors.start();
+            int exit_generate_vectors = generate_vectors.waitFor();
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(generate_vectors.getInputStream()))));
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(generate_vectors.getErrorStream()))));
+
+            Process train = pb_train.start();
+            int exit_train = train.waitFor();
+            BufferedReader error = new BufferedReader(new InputStreamReader(train.getErrorStream()));
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getInputStream()))));
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getErrorStream()))));
+
+            Process download_model = pb_download_model.start();
+            int exit_dw_model = download_model.waitFor();
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_model.getInputStream()))));
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_model.getErrorStream()))));
+
+            Process download_labelindex = pb_download_labelindex.start();
+            int exit_dw_labelindex = download_labelindex.waitFor();
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_labelindex.getInputStream()))));
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_labelindex.getErrorStream()))));
+
+
+            Process download_dictionary = pb_download_dictionary.start();
+            int exit_dw_dictionary = download_dictionary.waitFor();
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_dictionary.getInputStream()))));
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_dictionary.getErrorStream()))));
+
+
+            Process download_frequencies = pb_download_frequencies.start();
+            int exit_dw_frequencies = download_frequencies.waitFor();
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_frequencies.getInputStream()))));
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_frequencies.getErrorStream()))));
+
+            Process delete_hadoop_files = pb_delete_hadoop_files.start();
+            int exit_delete_hdfs_files = delete_hadoop_files.waitFor();
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getInputStream()))));
+            logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getErrorStream()))));
+
+
+            exitProcess(upload_files, exit_upload, exit_train, error);
+
+            /* Check if all went correctly*/
+            if (exit_upload == 0 && exit_generate_vectors == 0 && exit_train == 0 && exit_dw_model == 0
+                    && exit_dw_labelindex == 0 && exit_dw_dictionary == 0 && exit_dw_frequencies == 0
+                    && exit_delete_hdfs_files == 0) {
+                /*Process the stored result files*/
+                /*All the files will be stored in a directory with the name of the file that generated the data!*/
+                String dataPath = "./data/" + enterpriseName + "/";
+                File model = new File(dataPath + "model/naiveBayesModel.bin");
+                File labelindex = new File(dataPath + "labelindex");
+                File dictionary = new File(dataPath + "dictionary.file-0");
+                File frequencies = new File(dataPath + "df-count");
+
+                CompanyModel fileModel = new CompanyModel(enterpriseName, property, model, labelindex, dictionary, frequencies);
+
+                if (fileModelSQL == null) fileModelSQL = new CompanyModelDAOMySQL();
+                fileModelSQL.save(fileModel);
+
+                /*Once we stored the fileModel delete all files */
+                java.nio.file.Files.delete(model.toPath());
+                java.nio.file.Files.delete(labelindex.toPath());
+                java.nio.file.Files.delete(dictionary.toPath());
+                java.nio.file.Files.delete(frequencies.toPath());
+
+                FileUtils.deleteDirectory(new File(dataPath));
+            }
+
+            /* Delete sequential file */
+            File sequential = new File(pathToSeq);
+            FileUtils.deleteDirectory(sequential);
+
+            /*Deleting the directory containing the data:*/
+            FileUtils.deleteDirectory(new File("./data" + enterpriseName));
         }
-
-
-        /* Execute all processes and wait for them to finish */
-        Process upload_files = pb_upload_files.start();
-        int exit_upload = upload_files.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(upload_files.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(upload_files.getErrorStream()))));
-
-        Process generate_vectors = pb_generate_vectors.start();
-        int exit_generate_vectors = generate_vectors.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(generate_vectors.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(generate_vectors.getErrorStream()))));
-
-        Process train = pb_train.start();
-        int exit_train = train.waitFor();
-        BufferedReader error = new BufferedReader(new InputStreamReader(train.getErrorStream()));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getErrorStream()))));
-
-        Process download_model = pb_download_model.start();
-        int exit_dw_model = download_model.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_model.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_model.getErrorStream()))));
-
-        Process download_labelindex = pb_download_labelindex.start();
-        int exit_dw_labelindex = download_labelindex.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_labelindex.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_labelindex.getErrorStream()))));
-
-
-        Process download_dictionary = pb_download_dictionary.start();
-        int exit_dw_dictionary = download_dictionary.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_dictionary.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_dictionary.getErrorStream()))));
-
-
-        Process download_frequencies = pb_download_frequencies.start();
-        int exit_dw_frequencies = download_frequencies.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_frequencies.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(download_frequencies.getErrorStream()))));
-
-        Process delete_hadoop_files = pb_delete_hadoop_files.start();
-        int exit_delete_hdfs_files = delete_hadoop_files.waitFor();
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getInputStream()))));
-        System.out.println(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getErrorStream()))));
-
-
-        exitProcess(upload_files, exit_upload, exit_train, error);
-
-        /* Check if all went correctly*/
-        if (exit_upload == 0 && exit_generate_vectors == 0 && exit_train == 0 && exit_dw_model == 0
-                && exit_dw_labelindex== 0 && exit_dw_dictionary == 0 && exit_dw_frequencies == 0
-                && exit_delete_hdfs_files == 0) {
-            /*Process the stored result files*/
-            /*All the files will be stored in a directory with the name of the file that generated the data!*/
-            String dataPath = "./data/" + enterpriseName + "/";
-            File model = new File(dataPath + "model/naiveBayesModel.bin");
-            File labelindex = new File(dataPath + "labelindex");
-            File dictionary = new File(dataPath + "dictionary.file-0");
-            File frequencies = new File(dataPath + "df-count");
-
-            CompanyModel fileModel = new CompanyModel(enterpriseName, property, model, labelindex, dictionary, frequencies);
-
-            if (fileModelSQL == null) fileModelSQL = new CompanyModelDAOMySQL();
-            fileModelSQL.save(fileModel);
-
-            /*Once we stored the fileModel delete all files */
-            model.delete();
-            labelindex.delete();
-            dictionary.delete();
-            frequencies.delete();
-
-            FileUtils.deleteDirectory(new File(dataPath));
-        }
-
-        /* Delete sequential file */
-        File sequential = new File(pathToSeq);
-        FileUtils.deleteDirectory(sequential);
-
-        /*Deleting the directory containing the data:*/
-        FileUtils.deleteDirectory(new File("./data"+enterpriseName));
     }
 
     public RecommendationList classify(RequirementList request, String property, String enterpriseName, Boolean context) throws Exception {
@@ -380,7 +400,7 @@ public class ClassificationService {
 
         Classifier classifier = new Classifier();
 
-        System.out.println("Starting classifier");
+        logger.info("Starting classifier");
 
         ResultId resultId = AsyncService.getId();
 
@@ -426,7 +446,7 @@ public class ClassificationService {
 
         String tag;
         if (positiveTag > negativeTag) tag = property;
-        else tag = "Prose";
+        else tag = PROSE;
 
         for (Requirement r : children) {
             recommendationMap.get(r.getId()).setRequirement_type(tag);
@@ -444,26 +464,25 @@ public class ClassificationService {
         return isList;
     }
 
-    private static final String grammarExp = "^([a-z|A-Z]+|^[MDCLXVI]+$|[0-9]+)?[)|.|\\-|·]";
+    private static final String GRAMMAR_EXP = "^([a-z|A-Z]+|^[MDCLXVI]+$|[0-9]+)?[)|.|\\-|·]";
 
     private static boolean isBulletItem(String text) {
-        Pattern pattern = Pattern.compile(grammarExp);
+        Pattern pattern = Pattern.compile(GRAMMAR_EXP);
         Matcher matcher = pattern.matcher(text);
-        while (matcher.find()) {
-            return true;
-        }
-        return false;
+        return matcher.find();
     }
 
     public void updateMulti(RequirementList request, String property, String enterpriseName, List<String> modelList) throws Exception {
         HashMap<String, RequirementList> domainRequirementsMap = dataService.mapByDomain(request, property);
-        for (String domain : domainRequirementsMap.keySet()) {
+
+        for (Map.Entry<String, RequirementList> domainRequirements : domainRequirementsMap.entrySet()) {
+            String domain = domainRequirements.getKey();
             if (!domain.trim().isEmpty()) {
-                if (modelList.isEmpty()) updateDomainModel(request, domainRequirementsMap.get(domain), enterpriseName, property, domain);
-                else if (modelList.contains(domain)) updateDomainModel(request, domainRequirementsMap.get(domain), enterpriseName, property, domain);
+                updateDomainModel(request, domainRequirements.getValue(), enterpriseName, property, domain);
             }
         }
-        System.out.println("Done");
+
+        logger.info("Done");
     }
 
     private void updateDomainModel(RequirementList request, RequirementList requirementList, String enterpriseName, String property, String domain) throws Exception {
@@ -473,9 +492,9 @@ public class ClassificationService {
             }
             else requirement.setRequirement_type("Prose");
         }
-        System.out.println("Updating " + domain + " model...");
+        logger.info("Updating " + domain + " model...");
         update(request, property + "#" + domain, enterpriseName);
-        System.out.println("Done");
+        logger.info("Done");
     }
 
     public String update(RequirementList request, String property, String enterpriseName) throws Exception {
@@ -502,83 +521,84 @@ public class ClassificationService {
 
 
             /* Set the enviroment configuration */
-            BufferedReader environmentFile = new BufferedReader(new FileReader(new File("./config/environment.txt")));
-            String line;
-            while ((line = environmentFile.readLine()) != null) {
-                String env_var[] = line.split(",");
-                pb_upload_files.environment().put(env_var[0],env_var[1]);
-                pb_generate_vectors.environment().put(env_var[0],env_var[1]);
-                pb_train.environment().put(env_var[0],env_var[1]);
-                pb_download_model.environment().put(env_var[0],env_var[1]);
-                pb_download_labelindex.environment().put(env_var[0],env_var[1]);
-                pb_download_dictionary.environment().put(env_var[0],env_var[1]);
-                pb_download_frequencies.environment().put(env_var[0],env_var[1]);
-                pb_delete_hadoop_files.environment().put(env_var[0],env_var[1]);
+            try (BufferedReader environmentFile = new BufferedReader(new FileReader(new File("./config/environment.txt")))) {
+                String line;
+                while ((line = environmentFile.readLine()) != null) {
+                    String env_var[] = line.split(",");
+                    pb_upload_files.environment().put(env_var[0], env_var[1]);
+                    pb_generate_vectors.environment().put(env_var[0], env_var[1]);
+                    pb_train.environment().put(env_var[0], env_var[1]);
+                    pb_download_model.environment().put(env_var[0], env_var[1]);
+                    pb_download_labelindex.environment().put(env_var[0], env_var[1]);
+                    pb_download_dictionary.environment().put(env_var[0], env_var[1]);
+                    pb_download_frequencies.environment().put(env_var[0], env_var[1]);
+                    pb_delete_hadoop_files.environment().put(env_var[0], env_var[1]);
 
+                }
+
+                /* Execute all processes one by one*/
+                Process upload_files = pb_upload_files.start();
+                int exit_upload = upload_files.waitFor();
+
+                Process generate_vectors = pb_generate_vectors.start();
+                int exit_generate_vectors = generate_vectors.waitFor();
+
+                Process train = pb_train.start();
+                int exit_train = train.waitFor();
+                BufferedReader error = new BufferedReader(new InputStreamReader(train.getErrorStream()));
+
+                Process download_model = pb_download_model.start();
+                int exit_dw_model = download_model.waitFor();
+
+                Process download_labelindex = pb_download_labelindex.start();
+                int exit_dw_labelindex = download_labelindex.waitFor();
+
+                Process download_dictionary = pb_download_dictionary.start();
+                int exit_dw_dictionary = download_dictionary.waitFor();
+
+                Process download_frequencies = pb_download_frequencies.start();
+                int exit_dw_frequencies = download_frequencies.waitFor();
+
+                Process delete_hadoop_files = pb_delete_hadoop_files.start();
+                int exit_delete_hdfs_files = delete_hadoop_files.waitFor();
+
+                exitProcess(upload_files, exit_upload, exit_train, error);
+
+                /* Check if everything went well */
+                if (exit_upload == 0 && exit_generate_vectors == 0 && exit_train == 0 && exit_dw_model == 0
+                        && exit_dw_labelindex == 0 && exit_dw_dictionary == 0 && exit_dw_frequencies == 0
+                        && exit_delete_hdfs_files == 0) {
+                    /*Process the stored result files*/
+                    /*All the files will be stored in a directory with the name of the file that generated the data!*/
+                    String dataPath = "./data/" + enterpriseName + "/";
+                    File model = new File(dataPath + "model/naiveBayesModel.bin");
+                    File labelindex = new File(dataPath + "labelindex");
+                    File dictionary = new File(dataPath + "dictionary.file-0");
+                    File frequencies = new File(dataPath + "df-count");
+
+                    CompanyModel fileModel = new CompanyModel(enterpriseName, property, model, labelindex, dictionary, frequencies);
+
+                    /* Update the model in the database*/
+                    fileModelSQL.update(fileModel);
+
+                    /*Once we stored the fileModel delete all files */
+                    Files.delete(model.toPath());
+                    Files.delete(labelindex.toPath());
+                    Files.delete(dictionary.toPath());
+                    Files.delete(frequencies.toPath());
+
+                    FileUtils.deleteDirectory(new File(dataPath));
+                }
+
+                /* Delete sequential file */
+                File sequential = new File(pathToSeq);
+                FileUtils.deleteDirectory(sequential);
+
+                /*Deleting the directory containing the data:*/
+                FileUtils.deleteDirectory(new File("./data" + enterpriseName));
+
+                return "Update successful";
             }
-
-            /* Execute all processes one by one*/
-            Process upload_files = pb_upload_files.start();
-            int exit_upload = upload_files.waitFor();
-
-            Process generate_vectors = pb_generate_vectors.start();
-            int exit_generate_vectors = generate_vectors.waitFor();
-
-            Process train = pb_train.start();
-            int exit_train = train.waitFor();
-            BufferedReader error = new BufferedReader(new InputStreamReader(train.getErrorStream()));
-
-            Process download_model = pb_download_model.start();
-            int exit_dw_model = download_model.waitFor();
-
-            Process download_labelindex = pb_download_labelindex.start();
-            int exit_dw_labelindex = download_labelindex.waitFor();
-
-            Process download_dictionary = pb_download_dictionary.start();
-            int exit_dw_dictionary = download_dictionary.waitFor();
-
-            Process download_frequencies = pb_download_frequencies.start();
-            int exit_dw_frequencies = download_frequencies.waitFor();
-
-            Process delete_hadoop_files = pb_delete_hadoop_files.start();
-            int exit_delete_hdfs_files = delete_hadoop_files.waitFor();
-
-            exitProcess(upload_files, exit_upload, exit_train, error);
-
-            /* Check if everything went well */
-            if (exit_upload == 0 && exit_generate_vectors == 0 && exit_train == 0 && exit_dw_model == 0
-                    && exit_dw_labelindex== 0 && exit_dw_dictionary == 0 && exit_dw_frequencies == 0
-                    && exit_delete_hdfs_files == 0) {
-                /*Process the stored result files*/
-                /*All the files will be stored in a directory with the name of the file that generated the data!*/
-                String dataPath = "./data/" + enterpriseName + "/";
-                File model = new File(dataPath + "model/naiveBayesModel.bin");
-                File labelindex = new File(dataPath + "labelindex");
-                File dictionary = new File(dataPath + "dictionary.file-0");
-                File frequencies = new File(dataPath + "df-count");
-
-                CompanyModel fileModel = new CompanyModel(enterpriseName, property, model, labelindex, dictionary, frequencies);
-
-                /* Update the model in the database*/
-                fileModelSQL.update(fileModel);
-
-                /*Once we stored the fileModel delete all files */
-                model.delete();
-                labelindex.delete();
-                dictionary.delete();
-                frequencies.delete();
-
-                FileUtils.deleteDirectory(new File(dataPath));
-            }
-
-            /* Delete sequential file */
-            File sequential = new File(pathToSeq);
-            FileUtils.deleteDirectory(sequential);
-
-            /*Deleting the directory containing the data:*/
-            FileUtils.deleteDirectory(new File("./data" + enterpriseName));
-
-            return "Update successful";
         }
         else {
             return "Error, company " + enterpriseName + " doesn't have any classifier for the property " + property + " registered";
@@ -587,10 +607,10 @@ public class ClassificationService {
 
     private void exitProcess(Process upload_files, int exit_upload, int exit_train, BufferedReader error) throws IOException {
         if (exit_train != 0)
-            System.out.println(dataService.getMessage(error));
+            logger.info(dataService.getMessage(error));
         else if(exit_upload != 0) {
             BufferedReader error2 = new BufferedReader(new InputStreamReader(upload_files.getErrorStream()));
-            System.out.println(dataService.getMessage(error2));
+            logger.info(dataService.getMessage(error2));
         }
     }
 
@@ -598,7 +618,7 @@ public class ClassificationService {
         String enterpriseName = request.getCompany();
         String property = request.getProperty();
 
-        System.out.println("Request parsed, searching for model to delete it.");
+        logger.info("Request parsed, searching for model to delete it.");
         if (fileModelSQL == null) fileModelSQL = new CompanyModelDAOMySQL();
         boolean b;
         if (request.getCompany().equals("ALL"))
@@ -628,10 +648,10 @@ public class ClassificationService {
 
     private String getResult(boolean b) {
         if (b) {
-            System.out.println("Model(s) deleted");
+            logger.info("Model(s) deleted");
             return "Files deleted correctly";
         } else {
-            System.out.println("Error");
+            logger.info("Error");
             return "Model(s) not found";
         }
     }
@@ -666,14 +686,14 @@ public class ClassificationService {
         HashMap<String, RequirementList> domainRequirementsMap = dataService.mapByDomain(request, propertyKey);
         for (String domain : domainRequirementsMap.keySet()) {
             if (domainRequirementsMap.get(domain).getRequirements().size() == 0) {
-                System.out.println("Model not created for property " + domain + ": not enough data");
+                logger.info("Model not created for property " + domain + ": not enough data");
             }
             else if (!domain.trim().isEmpty()) {
                 if (modelList == null || modelList.isEmpty()) createDomainModel(request, domainRequirementsMap.get(domain), enterprise, propertyKey, domain);
                 else if (modelList.contains(domain)) createDomainModel(request, domainRequirementsMap.get(domain), enterprise, propertyKey, domain);
             }
         }
-        System.out.println("Done");
+        logger.info("Done");
     }
 
     private void createDomainModel(RequirementList request, RequirementList requirementDomainList, String enterprise, String propertyKey, String domain) throws Exception {
@@ -683,9 +703,9 @@ public class ClassificationService {
             }
             else requirement.setRequirement_type("Prose");
         }
-        System.out.println("Creating " + domain + " model...");
+        logger.info("Creating " + domain + " model...");
         train(request, propertyKey + "#" + domain, enterprise);
-        System.out.println("Done");
+        logger.info("Done");
     }
 
     public RecommendationList classifyByDomain(RequirementList request, String enterpriseName, String property, List<String> modelList, Boolean context) throws Exception {
