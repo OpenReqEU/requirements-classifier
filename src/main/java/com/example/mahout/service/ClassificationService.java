@@ -199,8 +199,6 @@ public class ClassificationService {
         ArrayList<List<Requirement>> testSets = sets.get("test_sets");
         logger.info("Test sets generated");
 
-        String pathToSeq = ClassificationService.SEQ_FILES + enterpriseName;
-
         /* Initialize hashMap of results */
         HashMap<String, Double> total_results = new HashMap<>();
         total_results.put("kappa", 0.0);
@@ -218,11 +216,22 @@ public class ClassificationService {
         List<Stats> partialStats = new ArrayList<>();
 
         for (int i = 0 ; i < trainSets.size(); i++) {
+
+            String pathToSeq = ClassificationService.SEQ_FILES + enterpriseName + i;
+
             RequirementList train = new RequirementList(trainSets.get(i));
             RequirementList test = new RequirementList(testSets.get(i));
-            train(train, property, "train_and_test");
-            RecommendationList recommendations = classify(test, property, "train_and_test", context);
+            train(train, property, enterpriseName + i);
+            RecommendationList recommendations = classify(test, property, enterpriseName + i, context);
+            delete(new CompanyPropertyKey(enterpriseName + i,property));
             partialStats.add(new Stats(recommendations, test, property));
+
+            /* Delete sequential file */
+            File sequential = new File(pathToSeq);
+            FileUtils.deleteDirectory(sequential);
+
+            File tmpFiles = new File("./tmpFiles/"+enterpriseName +i);
+            FileUtils.deleteDirectory(tmpFiles);
         }
 
         logger.info("Total results calculated");
@@ -234,13 +243,6 @@ public class ClassificationService {
 
         Gson gson = new Gson();
         logger.info("Total results transformed to JSON:\n" + gson.toJson(result));
-
-        /* Delete sequential file */
-        File sequential = new File(pathToSeq);
-        FileUtils.deleteDirectory(sequential);
-
-        File tmpFiles = new File("./tmpFiles/"+enterpriseName);
-        FileUtils.deleteDirectory(tmpFiles);
 
         logger.info("Directories deleted, train&test functionality finished.");
         return result;

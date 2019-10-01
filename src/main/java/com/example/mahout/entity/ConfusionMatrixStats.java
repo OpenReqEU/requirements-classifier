@@ -1,9 +1,11 @@
 package com.example.mahout.entity;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import java.io.Serializable;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ConfusionMatrixStats implements Serializable {
 
     @ApiModelProperty(value = "True positives")

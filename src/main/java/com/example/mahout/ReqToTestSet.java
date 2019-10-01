@@ -95,17 +95,7 @@ public class ReqToTestSet {
             CharTermAttribute termAtt = ts.addAttribute(CharTermAttribute.class);
             ts.reset();
             int wordCount = 0;
-            while(ts.incrementToken()) {
-                if (termAtt.length()> 0) {
-                    String word = ts.getAttribute(CharTermAttribute.class).toString();
-                    Integer wordId = dictionary.get(word);
-                    /* if the word is not in the dictionary, skip it */
-                    if (wordId != null) {
-                        words.add(word);
-                        wordCount++;
-                    }
-                }
-            }
+            wordCount = getWordCount(dictionary, words, ts, termAtt, wordCount);
             ts.close();
 
             /* Create vector wordId ==> weight using tfidf */
@@ -128,5 +118,20 @@ public class ReqToTestSet {
         }
         writer.close();
 
+    }
+
+    static int getWordCount(Map<String, Integer> dictionary, Multiset<String> words, TokenStream ts, CharTermAttribute termAtt, int wordCount) throws IOException {
+        while(ts.incrementToken()) {
+            if (termAtt.length()> 0) {
+                String word = ts.getAttribute(CharTermAttribute.class).toString();
+                Integer wordId = dictionary.get(word);
+                /* if the word is not in the dictionary, skip it */
+                if (wordId != null) {
+                    words.add(word);
+                    wordCount++;
+                }
+            }
+        }
+        return wordCount;
     }
 }

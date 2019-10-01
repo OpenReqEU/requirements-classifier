@@ -4,12 +4,9 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-import java.io.Serializable;
-import java.util.List;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 @ApiModel(value = "Stats", description = "Stats results of the classifier test")
-public class Stats implements Serializable {
+public class Stats extends ConfusionMatrixStats {
 
     @ApiModelProperty(value = "Kappa")
     Double kappa;
@@ -25,14 +22,6 @@ public class Stats implements Serializable {
     Double weighted_recall;
     @ApiModelProperty(value = "Weighted F1 score")
     Double weighted_f1_score;
-    @ApiModelProperty(value = "True positives")
-    Integer true_positives;
-    @ApiModelProperty(value = "False positives")
-    Integer false_positives;
-    @ApiModelProperty(value = "False negatives")
-    Integer false_negatives;
-    @ApiModelProperty(value = "True negatives")
-    Integer true_negatives;
 
     public Stats(Double kappa, Double accuracy, Double reliability, Double reliability_std_deviation, Double weighted_precision,
                  Double weighted_recall, Double weighted_f1_score, Integer true_positives, Integer false_positives,
@@ -155,35 +144,4 @@ public class Stats implements Serializable {
         this.weighted_f1_score = weighted_f1_score;
     }
 
-    public Integer getTrue_positives() {
-        return true_positives;
-    }
-
-    public void setTrue_positives(Integer true_positives) {
-        this.true_positives = true_positives;
-    }
-
-    public Integer getFalse_positives() {
-        return false_positives;
-    }
-
-    public void setFalse_positives(Integer false_positives) {
-        this.false_positives = false_positives;
-    }
-
-    public Integer getFalse_negatives() {
-        return false_negatives;
-    }
-
-    public void setFalse_negatives(Integer false_negatives) {
-        this.false_negatives = false_negatives;
-    }
-
-    public Integer getTrue_negatives() {
-        return true_negatives;
-    }
-
-    public void setTrue_negatives(Integer true_negatives) {
-        this.true_negatives = true_negatives;
-    }
 }
