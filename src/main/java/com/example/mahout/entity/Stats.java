@@ -81,10 +81,16 @@ public class Stats extends ConfusionMatrixStats {
 
         //stats evaluation
         accuracy = 100.00 * (true_negatives + true_positives) / recommendationList.getRecommendations().size();
-        double a = true_negatives + false_negatives > 0 ? true_negatives / (true_negatives + false_negatives) : 0;
-        double b = true_positives + false_positives > 0 ? true_positives / (true_positives + false_positives) : 0;
+        double a = true_negatives + false_negatives > 0 ? (double) true_negatives / ((double)true_negatives + (double)false_negatives) : 0;
+        double b = true_positives + false_positives > 0 ? (double) true_positives / ((double)true_positives + (double)false_positives) : 0;
         reliability = (a + b) * 100.00 / 2;
+
         //TODO
+        kappa = 0.0;
+        reliability_std_deviation = 0.0;
+        weighted_precision = 0.0;
+        weighted_recall = 0.0;
+        weighted_f1_score = 0.0;
 
     }
 

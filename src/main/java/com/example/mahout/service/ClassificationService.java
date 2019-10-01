@@ -236,6 +236,20 @@ public class ClassificationService {
 
         logger.info("Total results calculated");
 
+        for (Stats stat : partialStats) {
+            total_results.put("kappa", total_results.get("kappa") + stat.getKappa() / n);
+            total_results.put("accuracy", total_results.get("accuracy") + stat.getAccuracy() / n);
+            total_results.put("reliability", total_results.get("reliability") + stat.getReliability() * 1 / n);
+            total_results.put("reliability_std_deviation", total_results.get("reliability_std_deviation") + stat.getReliability_std_deviation()/ n);
+            total_results.put("weighted_precision", total_results.get("weighted_precision") + stat.getWeighted_precision()/ n);
+            total_results.put("weighted_recall", total_results.get("weighted_recall") + stat.getWeighted_recall() / n);
+            total_results.put("weighted_f1_score", total_results.get("weighted_f1_score") + stat.getWeighted_f1_score()/ n);
+            total_results.put("true_positives", total_results.get("true_positives") + stat.getTrue_positives()/ n);
+            total_results.put("false_positives", total_results.get("false_positives") + stat.getFalse_positives() / n);
+            total_results.put("false_negatives", total_results.get("false_negatives") + stat.getFalse_negatives() / n);
+            total_results.put("true_negatives", total_results.get("true_negatives") + stat.getTrue_negatives() / n);
+        }
+
         Stats result = new Stats(total_results.get("kappa"), total_results.get("accuracy"), total_results.get("reliability"),
                 total_results.get("reliability_std_deviation"), total_results.get("weighted_precision"), total_results.get("weighted_recall"),
                 total_results.get("weighted_f1_score"), total_results.get("true_positives").intValue(), total_results.get("false_positives").intValue(),
