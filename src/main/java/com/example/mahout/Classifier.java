@@ -102,10 +102,10 @@ public class Classifier {
         dictionaryPath = tmp_dictionary_file.toString();
         frequenciesPath = tmp_frequencies_file.toString();
 
-        System.out.println("Model Path: " + modelPath);
-        System.out.println("\nLabelindex Path: " + labelindexPath);
-        System.out.println("\nDictionary Path: " + dictionaryPath);
-        System.out.println("\nFrequencies Path: " + frequenciesPath + "\n");
+        logger.info("Model Path: " + modelPath);
+        logger.info("\nLabelindex Path: " + labelindexPath);
+        logger.info("\nDictionary Path: " + dictionaryPath);
+        logger.info("\nFrequencies Path: " + frequenciesPath + "\n");
     }
 
     private void deleteTmpFiles(ResultId resultId) {
@@ -124,7 +124,7 @@ public class Classifier {
             logger.error(e.getLocalizedMessage());
         }
 
-        System.out.println("Files deleted correctly\n");
+        logger.info("Files deleted correctly\n");
     }
 
     public  ArrayList<Pair<String, Pair<String, Double>>> classify(String companyName, List<Requirement> requirements, String property,
@@ -159,8 +159,8 @@ public class Classifier {
         int labelCount = labels.size();
         int documentCount = documentFrequency.get(-1).intValue();
 
-        System.out.println("Number of labels: " +  labelCount);
-        System.out.println("Number of documents in training set: " + documentCount);
+        logger.info("Number of labels: " +  labelCount);
+        logger.info("Number of documents in training set: " + documentCount);
 
         /* Return a list of pairs: Requirement, (Best caregory, Confidence) */
         ArrayList<Pair<String, Pair<String, Double>>> recomendations = new ArrayList<Pair<String,Pair<String, Double>>>();
@@ -174,7 +174,7 @@ public class Classifier {
             String reqId = requirement.getId();
             String req = requirement.getText();
 
-            System.out.println("Requirement: " + reqId + "\t" + req);
+            logger.info("Requirement: " + reqId + "\t" + req);
 
             Multiset<String> words = ConcurrentHashMultiset.create();
 
@@ -214,60 +214,19 @@ public class Classifier {
                     bestScore = score;
                     bestCategoryId = categoryId;
                 }
-                System.out.println(" " + labels.get(categoryId) + ": " + score);
+                logger.info(" " + labels.get(categoryId) + ": " + score);
             }
             double confidence = 0;
-            double label_score = 0;
-
-            double minScore = -Double.MIN_VALUE;
-            double maxScore = -Double.MAX_VALUE;
-
-            /*for (Multiset.Entry<String> entry: words.entrySet()) {
-                String word = entry.getElement();
-                wordId = dictionary.get(word);
-                Double defScore = classifier.getScoreForLabelFeature(0, wordId);
-                Double proseScore = classifier.getScoreForLabelFeature(1, wordId);
-                System.out.println("\t" + word);
-                System.out.println("\t\tDEF : " + defScore);
-                System.out.println("\t\tProse : " + proseScore);
-                if (minScore >= defScore) minScore = defScore;
-                if (minScore >= proseScore) minScore = proseScore;
-                if (maxScore <= defScore) maxScore = defScore;
-                if (maxScore <= proseScore) maxScore = proseScore;
-            }
-
-            System.out.println("Min score = " + minScore);
-            System.out.println("Max score = " + maxScore);*/
-
-            if (wordId != null) {
-                label_score = classifier.getScoreForLabelFeature(bestCategoryId, wordId);
-            }
-            /*double prob = 0.;
-            for (Multiset.Entry<String> entry: words.entrySet()) {
-                String word = entry.getElement();
-                wordId = dictionary.get(word);
-                Double score = classifier.getScoreForLabelFeature(bestCategoryId, wordId);
-                prob += (score - minScore) / (maxScore - minScore) * 100;
-            }
-            prob /= words.size();*/
 
             double defScore = resultVector.getElement(0).get();
             double proseScore = resultVector.getElement(1).get();
-            //confidence = 100.0 + label_score;
             double dif = Math.min(75.0, Math.abs(defScore - proseScore)) / 75.00;
             confidence = 50.0 + dif * 50.0 ;
             recomendations.add(new Pair(reqId, (new Pair(labels.get(bestCategoryId), confidence))));
-            //recomendations.add(new Pair(reqId, (new Pair(labels.get(bestCategoryId), prob))));
-            System.out.println(" => " + labels.get(bestCategoryId) + "\tConfidence: "+ confidence);
+            logger.info(" => " + labels.get(bestCategoryId) + "\tConfidence: "+ confidence);
 
-            //FIXME
-            /*String bestCategory = labels.get(bestCategoryId);
-            String category = requirement.getRequirement_type();
-            int tag = bestCategory.equals(category) ? 1 : 0;
-            csvFile += confidence + "," + tag + "\n";*/
+
         }
-
-        //Files.write(Paths.get("data.csv"), csvFile.getBytes());
 
         deleteTmpFiles(resultId);
         return recomendations;

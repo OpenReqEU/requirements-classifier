@@ -1,5 +1,6 @@
 package com.example.mahout;
 
+import com.example.mahout.service.ClassificationService;
 import org.apache.commons.io.IOUtils;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.StopFilter;
@@ -10,6 +11,8 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.util.Version;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.tartarus.snowball.ext.PorterStemmer;
 
 import java.io.*;
@@ -21,6 +24,8 @@ import java.util.Locale;
 
 public class TestLucene {
 
+    private static final Logger logger = LoggerFactory.getLogger(ClassificationService.class);
+
     public static void main(String args[]) throws Exception {
         PorterStemmer stemmer = new PorterStemmer();
         //TODO load and store file
@@ -28,8 +33,7 @@ public class TestLucene {
         InputStream inputStream= new FileInputStream(file);
         JSONObject jsonObject = new JSONObject(IOUtils.toString(inputStream));
         JSONArray jsonArray = jsonObject.getJSONArray("requirements");
-//        System.out.println(text);
-        System.out.println("Loaded file content. Start preprocessing...");
+        logger.info("Loaded file content. Start preprocessing...");
         Calendar start = Calendar.getInstance();
 
 
@@ -60,11 +64,6 @@ public class TestLucene {
             jsonArray.getJSONObject(i).put("text", sb.toString());
         }
         Calendar stop = Calendar.getInstance();
-//        System.out.println(jsonArray.toString());
-//        byte data[] = jsonArray.toString().getBytes();
-//        Path storeFile = Paths.get("data/output.json");
-//        Files.write(storeFile, data);
-//        System.out.println("Output stored in data/output\n(preprocessing completed in " + (stop.getTimeInMillis() - start.getTimeInMillis()) + " milliseconds)");
     }
 
 }
