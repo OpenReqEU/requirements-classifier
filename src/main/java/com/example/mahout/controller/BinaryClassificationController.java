@@ -18,19 +18,7 @@ import org.springframework.web.bind.annotation.*;
 public class BinaryClassificationController {
 
     @Autowired
-    private DataService dataService;
-    @Autowired
     private ClassificationService classificationService;
-
-    /**
-     * Just for testing purposes
-     * @return
-     * @throws Exception
-     */
-//    @GetMapping("/test")
-    public String test() throws Exception {
-        return "OK";
-    }
 
     @PostMapping("model")
     @ApiOperation(value = "Create a model",
@@ -52,7 +40,7 @@ public class BinaryClassificationController {
                                @ApiParam(value = "Property of the classifier (i.e. property value of the *requirement_type* field)", required = true, example = "requirement") @RequestParam("property") String property,
                                @ApiParam(value = "Proprietary company of the model", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
                           @ApiParam(value = "The endpoint where the result of the operation will be returned")
-                              @RequestParam("url") String url) throws Exception {
+                              @RequestParam("url") String url) {
 
         return classificationService.trainAsync(request, property, enterpriseName, url);
 
@@ -67,7 +55,7 @@ public class BinaryClassificationController {
                          @ApiParam(value = "Proprietary company of the model", required = true, example = "UPC") @RequestParam("company") String enterpriseName) throws Exception {
 
         String msg = classificationService.update(request, property, enterpriseName);
-        return new ResponseEntity<>(msg, msg.equals("Update succsesfull") ? HttpStatus.OK : HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(msg, !msg.contains("Error") ? HttpStatus.OK : HttpStatus.NOT_FOUND);
 
     }
 
