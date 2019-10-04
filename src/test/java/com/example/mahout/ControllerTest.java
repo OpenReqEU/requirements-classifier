@@ -1,7 +1,6 @@
 package com.example.mahout;
 
-import com.example.mahout.entity.Requirement;
-import com.example.mahout.entity.RequirementList;
+import com.example.mahout.entity.*;
 import com.example.mahout.service.ClassificationService;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Test;
@@ -18,6 +17,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Random;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -62,7 +64,7 @@ public class ControllerTest {
                 .param("url", "http://localhost:8080"))
                 .andExpect(status().isOk());
 
-        generateThreadWait();
+        generateThreadWait(70000);
 
         this.mockMvc.perform(put("/upc/classifier-component/model")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -72,19 +74,78 @@ public class ControllerTest {
                 .param("url","http://localhost:8080"))
                 .andExpect(status().isOk());
 
-        generateThreadWait();
+        generateThreadWait(70000);
 
         this.mockMvc.perform(post("/upc/classifier-component/classify")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(toJson(requirementList))
                 .param("company", "UPC-test")
-                .param("property", "DEF"))
+                .param("property", "DEF")
+                .param("context", "true"))
                 .andExpect(status().isOk());
 
         this.mockMvc.perform(delete("/upc/classifier-component/model")
                 .contentType(MediaType.APPLICATION_JSON)
                 .param("company", "UPC-test")
                 .param("property", "DEF"))
+                .andExpect(status().isOk());
+
+    }
+
+    @Test
+    public void multiClassTrainAndTest() throws Exception {
+
+        MultiRequirementList requirementList = generateMultilabelRequirementDataset(50);
+
+        try {
+            this.mockMvc.perform(post("/upc/classifier-component/multiclassifier/train&test")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(requirementList))
+                    .param("k", "1")
+                    .param("property", "domain"))
+                    .andExpect(status().isOk());
+        } catch (Exception e) {
+            //TODO handle exception
+        }
+    }
+
+    @Test
+    public void CRUDMulticlassifier() throws Exception {
+
+        MultiRequirementList requirementList = generateMultilabelRequirementDataset(50);
+
+        this.mockMvc.perform(post("/upc/classifier-component/multiclassifier/model")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(toJson(requirementList))
+                .param("company", "UPC-test")
+                .param("property", "domain")
+                .param("url", "http://localhost:8080"))
+                .andExpect(status().isOk());
+
+        generateThreadWait(130000);
+
+        this.mockMvc.perform(put("/upc/classifier-component/multiclassifier/model")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(toJson(requirementList))
+                .param("company", "UPC-test")
+                .param("property", "domain")
+                .param("url","http://localhost:8080"))
+                .andExpect(status().isOk());
+
+        generateThreadWait(130000);
+
+        this.mockMvc.perform(post("/upc/classifier-component/multiclassifier/classify")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(toJson(requirementList))
+                .param("company", "UPC-test")
+                .param("property", "domain")
+                .param("context", "true"))
+                .andExpect(status().isOk());
+
+        this.mockMvc.perform(delete("/upc/classifier-component/multiclassifier/model")
+                .contentType(MediaType.APPLICATION_JSON)
+                .param("company", "UPC-test")
+                .param("property", "domain"))
                 .andExpect(status().isOk());
 
     }
@@ -143,6 +204,8 @@ public class ControllerTest {
                     "We have a lot of rain in June."
             };
 
+    Random random = new Random();
+
     private RequirementList generateRequirementDataset(int n) {
         RequirementList requirementList = new RequirementList();
         String reqType1 = "DEF";
@@ -167,16 +230,48 @@ public class ControllerTest {
         return requirementList;
     }
 
+    private MultiRequirementList generateMultilabelRequirementDataset(int n) {
+        MultiRequirementList multiRequirementList = new MultiRequirementList();
+        String[] domains = {"Domain1", "Domain2", "Domain3"};
+
+        for (int i = 0; i < n; ++i) {
+            MultiRequirement multiRequirement = new MultiRequirement();
+            multiRequirement.setId(String.valueOf(i));
+
+            RequirementPart requirementPart = new RequirementPart();
+            requirementPart.setId("domain");
+
+            for (int j = 0; j < domains.length; ++j) {
+                if (random.nextBoolean()) {
+                    if (requirementPart.getText() == null) {
+                        requirementPart.setText(domains[j]);
+                    } else {
+                        requirementPart.setText(requirementPart.getText() + "\n" + domains[j]);
+                    }
+                }
+            }
+            if (requirementPart.getText() == null) requirementPart.setText(domains[0]);
+            multiRequirement.setRequirementParts(Collections.singletonList(requirementPart));
+            multiRequirement.setText(sentences[i%sentences.length]);
+            multiRequirement.setDocumentPositionOrder(i);
+
+            multiRequirementList.getRequirements().add(multiRequirement);
+
+        }
+
+        return multiRequirementList;
+    }
+
     private String toJson(Object list) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         return mapper.writeValueAsString(list);
     }
 
-    private synchronized void generateThreadWait() {
+    private synchronized void generateThreadWait(long millis) {
         final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
         try {
             logger.info("Inside synchronized block entry..." + dtf.format(LocalDateTime.now()));
-            this.wait(60000);
+            this.wait(millis);
             logger.info("Inside synchronized block exit..." + dtf.format(LocalDateTime.now()));
         } catch (InterruptedException e) {
             e.printStackTrace();
