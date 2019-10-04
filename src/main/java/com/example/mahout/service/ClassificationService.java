@@ -620,12 +620,7 @@ public class ClassificationService {
 
         for (String domain : domainRequirementsMap.keySet()) {
             if (!domain.trim().isEmpty()) {
-                if (modelList == null || modelList.isEmpty()) {
-                    total = trainAndTestDomain(request, n, propertyKey, domainStats, total, domainSize, statsMap, domain, context);
-                }
-                else if (modelList.contains(domain)) {
-                    total = trainAndTestDomain(request, n, propertyKey, domainStats, total, domainSize, statsMap, domain, context);
-                }
+                total = trainAndTestDomain(request, n, propertyKey, domainStats, total, domainSize, statsMap, domain, context);
             }
         }
 

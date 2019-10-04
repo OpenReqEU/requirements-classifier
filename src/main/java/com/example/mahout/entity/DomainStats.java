@@ -11,6 +11,10 @@ public class DomainStats extends Stats {
     @ApiModelProperty(value = "Confusion matrix")
     HashMap<String, ConfusionMatrixStats> confusion_matrix;
 
+    public DomainStats() {
+        this.confusion_matrix = new HashMap<>();
+    }
+
     public HashMap<String, ConfusionMatrixStats> getConfusion_matrix() {
         return confusion_matrix;
     }
