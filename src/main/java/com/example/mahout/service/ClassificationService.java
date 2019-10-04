@@ -44,7 +44,7 @@ public class ClassificationService {
     private DataService dataService;
 
     public Stats trainAndTest(RequirementList request, String property, int n, Boolean context) throws Exception {
-        String enterpriseName = "train_test";
+        String enterpriseName = "train_and_test";
 
         /* Preprocess data */
         List<Requirement> reqToTest = dataService.preprocess(request.getRequirements());
@@ -164,7 +164,7 @@ public class ClassificationService {
         ProcessBuilder pb_download_dictionary =  new ProcessBuilder(BIN_BASH, "-c", $_HADOOP_HOME_BIN_HADOOP_FS_GET+enterpriseName+"/dictionary.file-0 ./data/"+enterpriseName+"/dictionary.file-0");
         ProcessBuilder pb_download_frequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./data/"+enterpriseName+"/df-count");
         ProcessBuilder pb_delete_hadoop_files = new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -rm -r /"+enterpriseName);
-
+        logger.info("Logging for " + enterpriseName);
 
         /* Set the enviroment configuration */
         try(BufferedReader environmentFile = new BufferedReader(new FileReader(new File(CONFIG_ENVIRONMENT_TXT)))) {
@@ -182,6 +182,7 @@ public class ClassificationService {
 
             }
 
+            logger.info("Run Mahout for " + enterpriseName);
 
             /* Execute all processes and wait for them to finish */
             Process upload_files = pb_upload_files.start();
@@ -262,6 +263,9 @@ public class ClassificationService {
 
             /*Deleting the directory containing the data:*/
             FileUtils.deleteDirectory(new File("./data" + enterpriseName));
+        } catch(Exception e) {
+            logger.error("Error in " + enterpriseName);
+            logger.error(e.getLocalizedMessage());
         }
     }
 
