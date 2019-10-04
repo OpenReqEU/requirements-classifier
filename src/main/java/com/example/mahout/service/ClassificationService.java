@@ -44,7 +44,7 @@ public class ClassificationService {
     private DataService dataService;
 
     public Stats trainAndTest(RequirementList request, String property, int n, Boolean context) throws Exception {
-        String enterpriseName = "train_and_test";
+        String enterpriseName = "trainAndTest";
 
         /* Preprocess data */
         List<Requirement> reqToTest = dataService.preprocess(request.getRequirements());
@@ -77,7 +77,7 @@ public class ClassificationService {
 
             RequirementList train = new RequirementList(trainSets.get(i));
             RequirementList test = new RequirementList(testSets.get(i));
-            train(train, property, enterpriseName + i);
+            train(train, property, enterpriseName + String.valueOf(i));
             RecommendationList recommendations = classify(test, property, enterpriseName + i, context);
             delete(new CompanyPropertyKey(enterpriseName + i,property));
             partialStats.add(new Stats(recommendations, test, property));
