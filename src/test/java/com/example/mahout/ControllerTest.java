@@ -55,7 +55,7 @@ public class ControllerTest {
         this.mockMvc.perform(post("/upc/classifier-component/model")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(toJson(requirementList))
-                .param("company", "UPC-test")
+                .param("company", "UPCtest")
                 .param("property", "DEF")
                 .param("url", "http://localhost:8080"))
                 .andExpect(status().isOk());
@@ -65,7 +65,7 @@ public class ControllerTest {
         this.mockMvc.perform(put("/upc/classifier-component/model")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(toJson(requirementList))
-                .param("company", "UPC-test")
+                .param("company", "UPCtest")
                 .param("property", "DEF")
                 .param("url","http://localhost:8080"))
                 .andExpect(status().isOk());
@@ -75,14 +75,14 @@ public class ControllerTest {
         this.mockMvc.perform(post("/upc/classifier-component/classify")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(toJson(requirementList))
-                .param("company", "UPC-test")
+                .param("company", "UPCtest")
                 .param("property", "DEF")
                 .param("context", "true"))
                 .andExpect(status().isOk());
 
         this.mockMvc.perform(delete("/upc/classifier-component/model")
                 .contentType(MediaType.APPLICATION_JSON)
-                .param("company", "UPC-test")
+                .param("company", "UPCtest")
                 .param("property", "DEF"))
                 .andExpect(status().isOk());
 
@@ -109,7 +109,7 @@ public class ControllerTest {
         this.mockMvc.perform(post("/upc/classifier-component/multiclassifier/model")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(toJson(requirementList))
-                .param("company", "UPC-test")
+                .param("company", "UPCtest")
                 .param("property", "domain")
                 .param("url", "http://localhost:8080"))
                 .andExpect(status().isOk());
@@ -119,7 +119,7 @@ public class ControllerTest {
         this.mockMvc.perform(put("/upc/classifier-component/multiclassifier/model")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(toJson(requirementList))
-                .param("company", "UPC-test")
+                .param("company", "UPCtest")
                 .param("property", "domain")
                 .param("url","http://localhost:8080"))
                 .andExpect(status().isOk());
@@ -129,14 +129,14 @@ public class ControllerTest {
         this.mockMvc.perform(post("/upc/classifier-component/multiclassifier/classify")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(toJson(requirementList))
-                .param("company", "UPC-test")
+                .param("company", "UPCtest")
                 .param("property", "domain")
                 .param("context", "true"))
                 .andExpect(status().isOk());
 
         this.mockMvc.perform(delete("/upc/classifier-component/multiclassifier/model")
                 .contentType(MediaType.APPLICATION_JSON)
-                .param("company", "UPC-test")
+                .param("company", "UPCtest")
                 .param("property", "domain"))
                 .andExpect(status().isOk());
 
