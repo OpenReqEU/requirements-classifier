@@ -30,16 +30,6 @@ public class CompanyModel implements Serializable {
         return fileContent;
     }
 
-    private File convertBlobtoFile (byte[] blob, String name) throws IOException {
-        File file = new File("name");
-        try {
-            FileUtils.writeByteArrayToFile(file, blob);
-        } catch (IOException e) {
-            throw new IOException("Unable to convert byte array to file." + e.getMessage());
-        }
-        return file;
-    }
-
     public CompanyModel(String companyName, String property, byte[] model, byte[] labelindex, byte[] dictionary, byte[] frequency) throws IOException {
         this.companyName = companyName;
         this.property = property;
@@ -89,32 +79,4 @@ public class CompanyModel implements Serializable {
         return frequencies;
     }
 
-    /** Returns the file corresponding to the name of the file, there are 4 possibilities:
-     * model: returns the model
-     * labelindex: returns the labelindex
-     * dictionary: returns the dictionary file
-     * frequencies: returns the frequencies file
-     *
-     * */
-    public File getFile(String name) throws IOException {
-        File file = null;
-        switch (name) {
-            case "model":
-                file = convertBlobtoFile(model,name);
-                break;
-            case "labelindex":
-                file = convertBlobtoFile(labelindex, name);
-                break;
-            case "dictionary":
-                file = convertBlobtoFile(dictionary, name);
-                break;
-            case "frequencies":
-                file = convertBlobtoFile(frequencies, name);
-                break;
-            default:
-                break;
-        }
-        return file;
-
-    }
 }

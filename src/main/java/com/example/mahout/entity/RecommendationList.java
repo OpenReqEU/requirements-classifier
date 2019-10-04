@@ -4,7 +4,6 @@ import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -14,10 +13,6 @@ public class RecommendationList implements Serializable {
 
     public RecommendationList() {
         recommendations = new ArrayList<>();
-    }
-
-    public RecommendationList(List<Recommendation> values) {
-        this.recommendations = values;
     }
 
     public List<Recommendation> getRecommendations() {

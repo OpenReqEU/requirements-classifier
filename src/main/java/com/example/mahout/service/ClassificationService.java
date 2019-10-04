@@ -32,21 +32,8 @@ public class ClassificationService {
     private static final Logger logger = LoggerFactory.getLogger(ClassificationService.class);
 
     public static final String SEQ_FILES = "./seqFiles/";
-    public static final String TEST = "/test";
     public static final String BIN_BASH = "/bin/bash";
     public static final String CONFIG_ENVIRONMENT_TXT = "./config/environment.txt";
-    public static final String $_HADOOP_HOME_BIN_HADOOP_FS_PUT = "$HADOOP_HOME/bin/hadoop fs -put ";
-    public static final String $_MAHOUT_HOME_BIN_MAHOUT_SEQ_2_SPARSE_I = "$MAHOUT_HOME/bin/mahout seq2sparse -i /";
-    public static final String $_MAHOUT_HOME_BIN_MAHOUT_TRAINNB_I = "$MAHOUT_HOME/bin/mahout trainnb -i /";
-    public static final String $_HADOOP_HOME_BIN_HADOOP_FS_GETMERGE = "$HADOOP_HOME/bin/hadoop fs -getmerge /";
-    public static final String O = " -o /";
-    public static final String TFIDF_VECTORS_LI = "/tfidf-vectors -li /";
-    public static final String LABELINDEX_O = "/labelindex -o /";
-    public static final String MODEL_OW_C = "/model -ow -c";
-    public static final String TEST1 = "/test";
-    public static final String DICTIONARY_FILE_0 = "/dictionary.file-0";
-    public static final String DF_COUNT = "/df-count";
-    public static final String $_HADOOP_HOME_BIN_HADOOP_FS_RM_R = "$HADOOP_HOME/bin/hadoop fs -rm -r /";
     public static final String $_HADOOP_HOME_BIN_HADOOP_FS_GET = "$HADOOP_HOME/bin/hadoop fs -get /";
     public static final String PROSE = "Prose";
 
@@ -55,137 +42,6 @@ public class ClassificationService {
 
     @Autowired
     private DataService dataService;
-
-    public Map<String, Double> testOne(List<Requirement> reqToTrain, List<Requirement> reqToTest, String enterpriseName, int test_num) throws Exception {
-        logger.info("Testing test set number " + test_num);
-
-        String pathToSeq = SEQ_FILES + enterpriseName + TEST + test_num;
-
-        List<Requirement> reqToTrainFiltered = dataService.removeHeaders(reqToTrain);
-        List<Requirement> reqToTestFiltered = dataService.removeHeaders(reqToTest);
-
-        /* Create sequential file */
-        ToSeqFile.ReqToSeq(reqToTrainFiltered,pathToSeq);
-
-        /*Create the process and execute it in order to train mahout and get the results */
-        ProcessBuilder pb_upload_files =  new ProcessBuilder(BIN_BASH, "-c", $_HADOOP_HOME_BIN_HADOOP_FS_PUT +pathToSeq + " /" + enterpriseName);
-        ProcessBuilder pb_generate_vectors =  new ProcessBuilder(BIN_BASH, "-c", $_MAHOUT_HOME_BIN_MAHOUT_SEQ_2_SPARSE_I +enterpriseName+ O +enterpriseName);
-        ProcessBuilder pb_train =  new ProcessBuilder(BIN_BASH, "-c", $_MAHOUT_HOME_BIN_MAHOUT_TRAINNB_I +enterpriseName+ TFIDF_VECTORS_LI +enterpriseName+ LABELINDEX_O +enterpriseName+ MODEL_OW_C);
-        ProcessBuilder pb_download_dictionary =  new ProcessBuilder(BIN_BASH, "-c", $_HADOOP_HOME_BIN_HADOOP_FS_GETMERGE +enterpriseName+"/dictionary.file-0 ./tmpFiles/"+enterpriseName + TEST1 +test_num+ DICTIONARY_FILE_0);
-        ProcessBuilder pb_download_frequencies =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -getmerge /"+enterpriseName+"/df-count ./tmpFiles/"+enterpriseName +"/test"+test_num+ DF_COUNT);
-        ProcessBuilder pb_upload_test_set =  new ProcessBuilder(BIN_BASH, "-c", "$HADOOP_HOME/bin/hadoop fs -put ./tmpFiles/"+enterpriseName+"/test"+test_num + "/testSet /"+enterpriseName+"/testSet");
-        ProcessBuilder pb_test =  new ProcessBuilder(BIN_BASH, "-c", "$MAHOUT_HOME/bin/mahout testnb -i /"+enterpriseName+"/testSet -l /"+enterpriseName+"/labelindex -m /"+enterpriseName+"/model -ow -o /" + enterpriseName+"/results");
-        ProcessBuilder pb_delete_hadoop_files = new ProcessBuilder(BIN_BASH, "-c", $_HADOOP_HOME_BIN_HADOOP_FS_RM_R +enterpriseName);
-
-
-        /* Set the enviroment configuration */
-        try (BufferedReader environmentFile = new BufferedReader(new FileReader(new File(CONFIG_ENVIRONMENT_TXT)))) {
-            String line;
-            while ((line = environmentFile.readLine()) != null) {
-                String env_var[] = line.split(",");
-                pb_upload_files.environment().put(env_var[0], env_var[1]);
-                pb_generate_vectors.environment().put(env_var[0], env_var[1]);
-                pb_train.environment().put(env_var[0], env_var[1]);
-                pb_download_dictionary.environment().put(env_var[0], env_var[1]);
-                pb_download_frequencies.environment().put(env_var[0], env_var[1]);
-                pb_upload_test_set.environment().put(env_var[0], env_var[1]);
-                pb_test.environment().put(env_var[0], env_var[1]);
-                pb_delete_hadoop_files.environment().put(env_var[0], env_var[1]);
-
-            }
-        }
-
-        logger.info("Process created and configured");
-
-        /* Execute all processes one by one and wwait for them to finish */
-        logger.info("Uploading files");
-        Process upload_files = pb_upload_files.start();
-        upload_files.waitFor();
-        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(upload_files.getInputStream()))));
-        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(upload_files.getErrorStream()))));
-        logger.info("Done");
-
-        logger.info("Generating vectors");
-        Process generate_vectors = pb_generate_vectors.start();
-        generate_vectors.waitFor();
-        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(generate_vectors.getInputStream()))));
-        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(generate_vectors.getErrorStream()))));
-        logger.info("Done");
-
-        logger.info("Training");
-        Process train = pb_train.start();
-        train.waitFor();
-        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getInputStream()))));
-        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(train.getErrorStream()))));
-        logger.info("Done");
-
-        logger.info("Downloading directory file");
-        Process download_dictionary = pb_download_dictionary.start();
-        download_dictionary.waitFor();
-        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_dictionary.getInputStream()))));
-        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_dictionary.getErrorStream()))));
-        logger.info("Done");
-
-        logger.info("Downloading frequency file");
-        Process download_frequencies = pb_download_frequencies.start();
-        download_frequencies.waitFor();
-        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_frequencies.getInputStream()))));
-        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(download_frequencies.getErrorStream()))));
-        logger.info("Done");
-
-        logger.info("Creating test set");
-        String tmpPath = "./tmpFiles/" + enterpriseName + "/test" + test_num;
-        String freqPath = tmpPath + "/df-count";
-        String dictionaryPath = tmpPath + "/dictionary.file-0";
-        ReqToTestSet.createTestSet(freqPath, dictionaryPath, reqToTestFiltered, tmpPath +"/");
-        logger.info("Done");
-
-        logger.info("Uploading testSet");
-        Process upload_test_set = pb_upload_test_set.start();
-        upload_test_set.waitFor();
-        logger.info("Done");
-
-        logger.info("Testing model");
-        Process test = pb_test.start();
-        train.waitFor();
-        BufferedReader output_error_test = new BufferedReader(new InputStreamReader(test.getErrorStream()));
-        logger.info("Done");
-
-        /* Parse the output of the process to get the disered results */
-        logger.info("Getting stats");
-        StringBuilder builder = new StringBuilder();
-        StringBuilder positivess_negatives_builder= new StringBuilder();
-        String line2;
-        while ( (line2 = output_error_test.readLine()) != null) {
-            if (line2.contains("Kappa") || line2.contains("Accuracy") || line2.contains("Reliability") ||
-                    line2.contains("Weighted"))
-                builder.append(line2 + "\n");
-            if (line2.contains("Confusion Matrix")) {
-                /* Skip the 2 lines we don't want*/
-                output_error_test.readLine(); // NOSONAR
-                output_error_test.readLine();// NOSONAR
-                /* Read the 2 lines containing the numbers */
-                line2=output_error_test.readLine();
-                positivess_negatives_builder.append(line2+"\n");
-                line2=output_error_test.readLine();
-                positivess_negatives_builder.append(line2+"\n");
-            }
-        }
-        String statistics = builder.toString();
-        String positives_negatives_matrix = positivess_negatives_builder.toString();
-
-
-        logger.info("Deleting hadoop files");
-        Process delete_hadoop_files = pb_delete_hadoop_files.start();
-        delete_hadoop_files.waitFor();
-        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getErrorStream()))));
-        logger.info(dataService.getMessage(new BufferedReader(new InputStreamReader(delete_hadoop_files.getInputStream()))));
-        logger.info("Done");
-
-        return dataService.applyStats(reqToTest, reqToTestFiltered, (HashMap<String, Double>) dataService.getStats(statistics, positives_negatives_matrix));
-
-
-    }
 
     public Stats trainAndTest(RequirementList request, String property, int n, Boolean context) throws Exception {
         String enterpriseName = "train_test";

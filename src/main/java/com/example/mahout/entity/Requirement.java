@@ -64,10 +64,9 @@ public class Requirement implements Serializable, Comparable<Requirement>{
         this.text = text;
     }
 
-    public String getReqDomains(String key) throws Exception {
+    public String getReqDomains(String key) {
         String s = properties.get(key);
-        if (s == null) throw new Exception("Property not present in JSON object");
-        else return s;
+        return s;
     }
 
     public void setReqDomains(String key, String reqDomains) {

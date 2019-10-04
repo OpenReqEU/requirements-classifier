@@ -1,10 +1,7 @@
 package com.example.mahout.controller;
 
 import com.example.mahout.entity.*;
-import com.example.mahout.entity.siemens.SiemensRequirementList;
 import com.example.mahout.service.ClassificationService;
-import com.example.mahout.service.DataService;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -105,18 +102,11 @@ public class BinaryClassificationController {
                                       "tag during the classification process to all members belonging to a same " +
                                       "document list structure.") @RequestParam(value = "context", defaultValue = "false", required = false) Boolean context) throws Exception {
         System.out.println("Starting train and test functionality");
-        /* Parse the body of the request */
-//        JSONObject body = new JSONObject(request);
 
         Stats result = classificationService.trainAndTest(request, property, n, context);
 
         return result;
 
     }
-
-    /*@RequestMapping(value = "parse", method = RequestMethod.POST)
-    public RequirementList parseSiemensToOpenReq(@RequestBody SiemensRequirementList siemensRequirementList) {
-        return dataService.parseSiemensToOpenReq(siemensRequirementList);
-    }*/
 
 }
