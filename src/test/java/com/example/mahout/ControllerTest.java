@@ -64,7 +64,7 @@ public class ControllerTest {
                 .param("url", "http://localhost:8080"))
                 .andExpect(status().isOk());
 
-        generateThreadWait(70000);
+        generateThreadWait(80000);
 
         this.mockMvc.perform(put("/upc/classifier-component/model")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -72,10 +72,9 @@ public class ControllerTest {
                 .param("company", "UPC-test")
                 .param("property", "DEF")
                 .param("url","http://localhost:8080"))
-                //.andExpect(status().isOk())
-        ;
+                .andExpect(status().isOk());
 
-        generateThreadWait(70000);
+        generateThreadWait(80000);
 
         this.mockMvc.perform(post("/upc/classifier-component/classify")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -123,7 +122,7 @@ public class ControllerTest {
                 .param("url", "http://localhost:8080"))
                 .andExpect(status().isOk());
 
-        generateThreadWait(130000);
+        generateThreadWait(240000);
 
         this.mockMvc.perform(put("/upc/classifier-component/multiclassifier/model")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -133,7 +132,7 @@ public class ControllerTest {
                 .param("url","http://localhost:8080"))
                 .andExpect(status().isOk());
 
-        generateThreadWait(130000);
+        generateThreadWait(240000);
 
         this.mockMvc.perform(post("/upc/classifier-component/multiclassifier/classify")
                 .contentType(MediaType.APPLICATION_JSON)
