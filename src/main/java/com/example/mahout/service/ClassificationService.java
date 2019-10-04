@@ -635,7 +635,7 @@ public class ClassificationService {
 
         for (String key : statsMap.keySet()) {
             Stats stats = statsMap.get(key);
-            double factor = (double) domainSize.get(key) / (double) total;
+            double factor = (double) total > 0 ? (double) domainSize.get(key) / (double) total : 1.0;
             kappa += stats.getKappa() * factor;
             accuracy += stats.getAccuracy() * factor;
             reliability += stats.getReliability() * factor;
