@@ -42,7 +42,7 @@ public class ControllerTest {
         this.mockMvc.perform(post("/upc/classifier-component/train&test")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(toJson(requirementList))
-                .param("k", "1")
+                .param("k", "2")
                 .param("property", "DEF"))
                 .andExpect(status().isOk());
     }
@@ -96,7 +96,7 @@ public class ControllerTest {
         this.mockMvc.perform(post("/upc/classifier-component/multiclassifier/train&test")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(toJson(requirementList))
-                .param("k", "1")
+                .param("k", "2")
                 .param("property", "domain"))
                 .andExpect(status().isOk());
     }
