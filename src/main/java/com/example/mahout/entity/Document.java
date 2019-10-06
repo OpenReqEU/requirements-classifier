@@ -26,22 +26,6 @@ public class Document {
 
     }
 
-    public List<Requirement> getRootItems() {
-        return rootItems;
-    }
-
-    public void setRootItems(List<Requirement> rootItems) {
-        this.rootItems = rootItems;
-    }
-
-    public HashMap<String, List<Requirement>> getTree() {
-        return tree;
-    }
-
-    public void setTree(HashMap<String, List<Requirement>> tree) {
-        this.tree = tree;
-    }
-
     public List<Requirement> getChildren(String requirement) {
         return tree.get(requirement);
     }
