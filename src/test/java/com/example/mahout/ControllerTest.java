@@ -151,9 +151,9 @@ public class ControllerTest {
     private String[] sentences =
             {
                     "The clock within this blog and the clock on my laptop are 1 hour different from each other.",
-                    "Wow, does that work?",
-                    "Check back tomorrow; I will see if the book has arrived.",
-                    "I'd rather be a bird than a fish.",
+                    "1. Wow, does that work?",
+                    "2. Check back tomorrow; I will see if the book has arrived.",
+                    "3. I'd rather be a bird than a fish.",
                     "He turned in the research paper on Friday; otherwise, he would have not passed the class.",
                     "Writing a list of random sentences is harder than I initially thought it would be.",
                     "This is a Japanese doll.",
@@ -224,6 +224,12 @@ public class ControllerTest {
 
             requirementList.getRequirements().add(r);
         }
+
+        //Force add document structure
+        requirementList.getRequirements().get(1).setRequirementParent(String.valueOf(0));
+        requirementList.getRequirements().get(2).setRequirementParent(String.valueOf(0));
+        requirementList.getRequirements().get(3).setRequirementParent(String.valueOf(0));
+
 
         return requirementList;
     }
