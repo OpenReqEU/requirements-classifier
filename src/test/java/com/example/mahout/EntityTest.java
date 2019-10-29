@@ -50,18 +50,11 @@ public class EntityTest {
         Assert.assertTrue(domainStats.getConfusion_matrix().isEmpty());
 
         //Stats
-        Stats stats = new Stats(0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 15, 5, 3, 10);
+        Stats stats = new Stats(15, 5, 3, 10);
         Assert.assertEquals(15, (int) stats.getTrue_positives());
         Assert.assertEquals(5, (int) stats.getFalse_positives());
         Assert.assertEquals(3, (int) stats.getFalse_negatives());
         Assert.assertEquals(10, (int) stats.getTrue_negatives());
-        Assert.assertEquals(0.9, stats.getKappa(), 0.0);
-        Assert.assertEquals(0.8, stats.getAccuracy(), 0.0);
-        Assert.assertEquals(0.7, stats.getReliability(), 0.0);
-        Assert.assertEquals(0.6, stats.getReliability_std_deviation(), 0.0);
-        Assert.assertEquals(0.5, stats.getWeighted_precision(), 0.0);
-        Assert.assertEquals(0.4, stats.getWeighted_recall(), 0.0);
-        Assert.assertEquals(0.3, stats.getWeighted_f1_score(), 0.0);
 
         Stats stats1 = new Stats(0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3);
         Assert.assertEquals(0.9, stats1.getKappa(), 0.0);

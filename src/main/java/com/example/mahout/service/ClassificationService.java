@@ -18,10 +18,7 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.nio.file.Files;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -77,8 +74,14 @@ public class ClassificationService {
 
             RequirementList train = new RequirementList(trainSets.get(i));
             RequirementList test = new RequirementList(testSets.get(i));
+
+            long init_train = Calendar.getInstance().getTimeInMillis();
             train(train, property, enterpriseName + String.valueOf(i));
+            long finish_train = Calendar.getInstance().getTimeInMillis();
             RecommendationList recommendations = classify(test, property, enterpriseName + i, context);
+            long finish_class = Calendar.getInstance().getTimeInMillis();
+            logger.info("EXECUTION TIME\tTrain:\t" + (finish_train-init_train) + "\tClassify:\t" + (finish_class-finish_train));
+
             delete(new CompanyPropertyKey(enterpriseName + i,property));
             partialStats.add(new Stats(recommendations, test, property));
 
@@ -93,22 +96,13 @@ public class ClassificationService {
         logger.info("Total results calculated");
 
         for (Stats stat : partialStats) {
-            total_results.put("kappa", total_results.get("kappa") + stat.getKappa() / n);
-            total_results.put("accuracy", total_results.get("accuracy") + stat.getAccuracy() / n);
-            total_results.put("reliability", total_results.get("reliability") + stat.getReliability() * 1 / n);
-            total_results.put("reliability_std_deviation", total_results.get("reliability_std_deviation") + stat.getReliability_std_deviation()/ n);
-            total_results.put("weighted_precision", total_results.get("weighted_precision") + stat.getWeighted_precision()/ n);
-            total_results.put("weighted_recall", total_results.get("weighted_recall") + stat.getWeighted_recall() / n);
-            total_results.put("weighted_f1_score", total_results.get("weighted_f1_score") + stat.getWeighted_f1_score()/ n);
-            total_results.put("true_positives", total_results.get("true_positives") + (double) stat.getTrue_positives()/ n);
-            total_results.put("false_positives", total_results.get("false_positives") + (double) stat.getFalse_positives() / n);
-            total_results.put("false_negatives", total_results.get("false_negatives") + (double) stat.getFalse_negatives() / n);
-            total_results.put("true_negatives", total_results.get("true_negatives") + (double) stat.getTrue_negatives() / n);
+            total_results.put("true_positives", total_results.get("true_positives") + (double) stat.getTrue_positives());
+            total_results.put("false_positives", total_results.get("false_positives") + (double) stat.getFalse_positives());
+            total_results.put("false_negatives", total_results.get("false_negatives") + (double) stat.getFalse_negatives());
+            total_results.put("true_negatives", total_results.get("true_negatives") + (double) stat.getTrue_negatives());
         }
 
-        Stats result = new Stats(total_results.get("kappa"), total_results.get("accuracy"), total_results.get("reliability"),
-                total_results.get("reliability_std_deviation"), total_results.get("weighted_precision"), total_results.get("weighted_recall"),
-                total_results.get("weighted_f1_score"), total_results.get("true_positives").intValue(), total_results.get("false_positives").intValue(),
+        Stats result = new Stats(total_results.get("true_positives").intValue(), total_results.get("false_positives").intValue(),
                 total_results.get("false_negatives").intValue(), total_results.get("true_negatives").intValue());
 
         Gson gson = new Gson();

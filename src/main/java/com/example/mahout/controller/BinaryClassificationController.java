@@ -9,6 +9,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
+
 @RestController
 @RequestMapping("/upc/classifier-component")
 @Api(value = "Multiclass Classifier Controller", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -33,7 +35,7 @@ public class BinaryClassificationController {
                     "The 'id' field can be used to match the synchronous response of the request with the asynchronous " +
                     "response of the response. The 'code' field states the HTTP code of the request.")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = ResultId.class)})
-    public ResultId train(@ApiParam(value = "Request with the requirements to train the model", required = true) @RequestBody RequirementList request,
+    public ResultId train(@ApiParam(value = "Request with the requirements to train the model", required = true) @Valid @RequestBody RequirementList request,
                                @ApiParam(value = "Property of the classifier (i.e. property value of the *requirement_type* field)", required = true, example = "requirement") @RequestParam("property") String property,
                                @ApiParam(value = "Proprietary company of the model", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
                           @ApiParam(value = "The endpoint where the result of the operation will be returned")

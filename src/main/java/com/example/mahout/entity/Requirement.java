@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
+import javax.validation.constraints.Pattern;
 import java.io.Serializable;
 import java.util.HashMap;
 
@@ -14,6 +15,7 @@ public class Requirement implements Serializable, Comparable<Requirement>{
     @ApiModelProperty(value = "ID of the requirement", example = "REQ002")
     private String id;
     @ApiModelProperty(value = "Requirement type", example = "requirement")
+    @Pattern(regexp="^[a-zA-Z0-9 ]*$", message="Invalid requirement type. Labels must include only the following chars: 'A'-'Z', 'a'-'Z', '0'-'9' and ' '")
     private String requirement_type;
     @ApiModelProperty(value = "Text with the requirement information", example = "The system must be implemented using" +
             " last Java version")
@@ -91,6 +93,8 @@ public class Requirement implements Serializable, Comparable<Requirement>{
 
     @Override
     public int compareTo(Requirement r) {
+        if (this.documentPositionOrder == null || r.getDocumentPositionOrder() == null)
+            return 0;
         return this.documentPositionOrder - r.getDocumentPositionOrder();
     }
 }
