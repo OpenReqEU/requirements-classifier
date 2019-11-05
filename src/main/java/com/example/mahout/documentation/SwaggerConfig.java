@@ -24,7 +24,12 @@ public class SwaggerConfig {
             "classifier to evaluate if a requirement is a member of the property value class (*requirement_type = 'V'*) or if it is not " +
             "(*requirement_type = 'Prose'*).\n\n" +
             "**· Multilabel classifier:** given the domain of property values {V}, the multilabel classifier is used for " +
-            "properties that can have more than one value for each item.\n\n";
+            "properties that can have more than one value for each item.\n\n" +
+            "**DATASET REQUIREMENTS**\n\nIn order to guarantee a minimum accuracy in the classification process, this classifier" +
+            " requires a minimum number of requirements per each tag, described by the formula:\n\n" +
+            " **|reqs-per-tag|** = (N - 1) x 40,\n\n" +
+            "where N = nº of tags (i.e., classes or" +
+            " requirement types) in the dataset.\n\n";
 
     private ApiInfo apiInfo() {
         return new ApiInfoBuilder()
