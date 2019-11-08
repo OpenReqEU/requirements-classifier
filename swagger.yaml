@@ -12,11 +12,13 @@ info:
 
     **DATASET REQUIREMENTS**
 
-    In order to guarantee a minimum accuracy in the classification process, this classifier requires a minimum number of requirements per each tag, described by the formula:
+    In order to guarantee a minimum accuracy in the classification process, this classifier requires a minimum number of requirements per each tag (i.e., per each requirement-type value). Based on an analytical evaluation with real datasets, this value can be estimated with the following formula:
 
      **|reqs-per-tag|** = (N - 1) x 40,
 
     where N = nº of tags (i.e., classes or requirement types) in the dataset.
+
+    *Note: this analytical evaluation has been tested with values N=2,3,4 and a minim accuracy=75%*
   title: Requirement Classifier API
 host: '217.172.12.199:9402'
 basePath: /

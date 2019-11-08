@@ -26,10 +26,12 @@ public class SwaggerConfig {
             "**· Multilabel classifier:** given the domain of property values {V}, the multilabel classifier is used for " +
             "properties that can have more than one value for each item.\n\n" +
             "**DATASET REQUIREMENTS**\n\nIn order to guarantee a minimum accuracy in the classification process, this classifier" +
-            " requires a minimum number of requirements per each tag, described by the formula:\n\n" +
+            " requires a minimum number of requirements per each tag(i.e., per each requirement-type value). " +
+            "Based on an analytical evaluation with real datasets, this value can be estimated with the following formula:\n\n" +
             " **|reqs-per-tag|** = (N - 1) x 40,\n\n" +
             "where N = nº of tags (i.e., classes or" +
-            " requirement types) in the dataset.\n\n";
+            " requirement types) in the dataset.\n\n" +
+            "*Note: this analytical evaluation has been tested with values N=2,3,4 and a minim accuracy=75%*";
 
     private ApiInfo apiInfo() {
         return new ApiInfoBuilder()
