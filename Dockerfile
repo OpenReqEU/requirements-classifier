@@ -14,8 +14,6 @@ RUN mkdir -p tmpFiles
 
 RUN ssh-keygen -A
 
-# create ssh certificate for user
-# RUN cat /dev/zero | ssh-keygen -q -N ""
 RUN cat /dev/zero | ssh-keygen -t rsa -P ""
 RUN cat $HOME/.ssh/id_rsa.pub >> $HOME/.ssh/authorized_keys
 
@@ -23,10 +21,8 @@ RUN echo -e "root\nroot" | passwd
 
 RUN cp ./docker/environment.txt ./config/environment.txt
 RUN cp ./docker/.bashrc ~/.bashrc
-# RUN source ~/.bashrc - non serve perchè ogni comando fa shell a se stante
 RUN cp ./docker/hadoop-env.sh ./hadoop/etc/hadoop/hadoop-env.sh
 RUN cp ./docker/hdfs-site.xml ./hadoop/etc/hadoop/hdfs-site.xml
-# RUN cp ./docker/core-site.xml ./hadoop/etc/hadoop/core-site.xml
 RUN cp ./docker/init.sh ./init.sh && chmod +x init.sh
 RUN cp ./docker/ssh_config /etc/ssh/ssh_config
 RUN mkdir -p /tmp/classifier/hadoop/hadoop_store/hdfs/datanode
