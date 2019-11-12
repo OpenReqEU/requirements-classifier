@@ -1,0 +1,9 @@
+JAVA_HOME,/usr/lib/jvm/java-8-openjdk-amd64
+HADOOP_HOME,/tmp/classifier/hadoop
+HADOOP_MAPRED_HOME,/tmp/classifier/hadoop
+HADOOP_COMMON_HOME,/tmp/classifier/hadoop
+HADOOP_HDFS_HOME,/tmp/classifier/hadoop
+YARN_HOME,/tmp/classifier/hadoop
+HADOOP_COMMON_LIB_NATIVE_DIR,/tmp/classifier/hadoop/lib/native
+HADOOP_OPTS,-Djava.library.path=/tmp/classifier/hadoop/lib
+MAHOUT_HOME,/tmp/classifier/mahout
