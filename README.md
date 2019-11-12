@@ -63,6 +63,18 @@ The classification service relies on two different technologies that are used to
 
 ### How to install
 
+#### Docker installation
+
+The project includes a Dockerfile for running an instance of the requirements-classifier service. In order to build and run the service with Docker, run the following command:
+
+```docker-compose up```
+
+You can make sure the Docker image is running successfully by checking the status with:
+
+```docker container ls```
+
+#### Manual installation
+
 The project includes an isolated, integrated version of Hadoop and Mahout. In order to use them, it is necessary to configure the following steps:
 
 1. **Configuration**
