@@ -19,6 +19,6 @@
 <configuration>
 	<property>
 	  <name>fs.defaultFS</name>
-	  <value>hdfs://requirement-classifier:9403</value>
+	  <value>hdfs://localhost:9403</value>
 	</property>
 </configuration>
