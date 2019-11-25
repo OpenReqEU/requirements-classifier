@@ -74,17 +74,6 @@ You can make sure the Docker image is running successfully by checking the statu
 
 ```docker container ls```
 
-##### Running multiple instances
-
-To launch multiple docker instances of the *requirements-classifier* service, it is necessary to configure and launch both requirements-classifier and Hadoop services in different ports. Therefore, for each *build* of the Docker container, you need to:
-
-1. **requirements-classifier**
-    1. Edit *./src/main/resources/application.properties* and change *server.port=9402* to the port where you want to launch the new instance
-    2. Edit *./docker-compose.yml* and change *'- "9402:9402"'* to the new port where the *requirements-classifier* will be launched
-2. **hadoop**
-    1. Edit *./docker/core-site.xml* and change *<value>hdfs://localhost:9403</value>* to the port where you want to launch the new instance of Hadoop
-    2. Edit *./docker-compose.yml* and change *'- "9403:9403"'* to the new port where *hadoop* will be launched
-
 #### Manual installation
 
 The project includes an isolated, integrated version of Hadoop and Mahout. In order to use them, it is necessary to configure the following steps:
