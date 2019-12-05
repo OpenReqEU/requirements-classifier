@@ -618,7 +618,8 @@ public class ClassificationService {
 
         for (String domain : domainRequirementsMap.keySet()) {
             if (!domain.trim().isEmpty()) {
-                total = trainAndTestDomain(request, n, propertyKey, domainStats, total, domainSize, statsMap, domain, context);
+                if (modelList == null || modelList.isEmpty() || (!modelList.isEmpty() && modelList.contains(domain)))
+                    total = trainAndTestDomain(request, n, propertyKey, domainStats, total, domainSize, statsMap, domain, context);
             }
         }
 
@@ -665,7 +666,7 @@ public class ClassificationService {
                 r.setRequirement_type("Prose");
         }
 
-        Stats s = trainAndTest(request, propertyKey, n, context);
+        Stats s = trainAndTest(request, domain, n, context);
 
         ConfusionMatrixStats confusionMatrixStats = new ConfusionMatrixStats();
         confusionMatrixStats.setTrue_positives(s.getTrue_positives());
