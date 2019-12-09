@@ -6,9 +6,9 @@ info:
 
     This service implements two different classifiers:
 
-    **· Binary classifier:** given a property value V for the *requirement_type* property, the binary classifier builds a classifier to evaluate if a requirement is a member of the property value class (*requirement_type = 'V'*) or if it is not (*requirement_type = 'Prose'*).
+    **· Multiclass classifier:** given a property P for the requirement_type property which identifies a model, the multiclass classifier builds a multiclass model for each possible value {V} of the property P in the dataset. Each requirement is related to a single value V.
 
-    **· Multilabel classifier:** given the domain of property values {V}, the multilabel classifier is used for properties that can have more than one value for each item.
+    **· Multilabel classifier:**  given the domain of property values {V}, the multilabel classifier is used for properties that can have more than one value V for each item.
 
     **DATASET REQUIREMENTS**
 
@@ -20,11 +20,11 @@ info:
 
     *Note: this analytical evaluation has been tested with values N=2,3,4 and a minim accuracy=75%*
   title: Requirement Classifier API
-host: '217.172.12.199:9402'
+host: 'https://api.openreq.eu/requirements-classifier/'
 basePath: /
 tags:
 - name: binary-classification-controller
-  description: Binary Classification Controller
+  description: Multiclass Classification Controller
 - name: multilabel-classification-controller
   description: Multilabel Classification Controller
 paths:
