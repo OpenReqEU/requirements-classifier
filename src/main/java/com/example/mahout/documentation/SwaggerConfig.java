@@ -20,11 +20,11 @@ public class SwaggerConfig {
             "The classifier is based on a Naive Bayes implemented using Apache Mahout (https://mahout.apache.org/)" +
             "\n\n" +
             "This service implements two different classifiers:\n\n" +
-            "**· Binary classifier:** given a property value V for the *requirement_type* property, the binary classifier builds a " +
-            "classifier to evaluate if a requirement is a member of the property value class (*requirement_type = 'V'*) or if it is not " +
-            "(*requirement_type = 'Prose'*).\n\n" +
-            "**· Multilabel classifier:** given the domain of property values {V}, the multilabel classifier is used for " +
-            "properties that can have more than one value for each item.\n\n" +
+            "**· Multiclass classifier:** given a property P for the requirement_type property which identifies a model," +
+            " the multiclass classifier builds a multiclass model for each possible value {V} of the property P in the" +
+            " dataset. Each requirement is related to a single value V.\n\n" +
+            "**· Multilabel classifier:** given the domain of property values {V}, the multilabel classifier is used for" + 
+            " properties that can have more than one value V for each item.\n\n" +
             "**DATASET REQUIREMENTS**\n\nIn order to guarantee a minimum accuracy in the classification process, this classifier" +
             " requires a minimum number of requirements per each tag(i.e., per each requirement-type value). " +
             "Based on an analytical evaluation with real datasets, this value can be estimated with the following formula:\n\n" +
