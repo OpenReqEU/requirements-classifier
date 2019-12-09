@@ -45,7 +45,7 @@ public class SwaggerConfig {
     @Bean
     public Docket classifier_api() {
         return new Docket(DocumentationType.SWAGGER_2)
-                .host("https://api.openreq.eu/requirements-classifier/")
+                .host("api.openreq.eu/requirements-classifier")
                 .apiInfo(apiInfo())
                 .pathMapping("/")
                 .select()
