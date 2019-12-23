@@ -36,7 +36,7 @@ public class SwaggerConfig {
         return new ApiInfoBuilder()
                 .title(title)
                 .description(description)
-                .license(SWAGGER_API_VERSION)
+                .version(SWAGGER_API_VERSION)
                 .build();
     }
 
