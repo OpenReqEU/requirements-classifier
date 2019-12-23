@@ -32,7 +32,7 @@ public class MultilabelClassificationController {
                     "the *property* field.\n\n" +
                     "This method is executed in an asynchronous way. As a response you will get an object with a single attribute " +
                     "id (check swagger response below) when the training has started. Once the execution is finished, you will " +
-                    "get a response to the endpoint set at the *url* parameter. The format of the response is as follows: \n\n" +
+                    "get a response to the endpoint set in the *url* parameter. The format of the response is as follows: \n\n" +
                     "{\n" +
                     "\t\"message\":\"Response message\",\n" +
                     "\t\"id\": \"1562315038067_409\",\n" +
@@ -43,7 +43,7 @@ public class MultilabelClassificationController {
                     "**WARNING**: if no data is provided for a specific property value, no model will be created")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = ResultId.class)})
     public ResultId test(@ApiParam(value = "Request with the requirements to train", required = true) @RequestBody MultiRequirementList request,
-                     @ApiParam(value = "Company to which the model belong", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
+                     @ApiParam(value = "The company to which the model belongs", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
                      @ApiParam(value = "Property of the classifier", required = true, example = "requirement") @RequestParam("property") String property,
                      @ApiParam(value = "List of property values to generate models (if empty, all values are generated)")
                          @RequestParam(value = "modelList", required = false) List<String> modelList,
@@ -65,7 +65,7 @@ public class MultilabelClassificationController {
             "list of all models created for that multi-label property. Notice that if no data was provided for a " +
             "specific value, no model has been created.")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = String[].class)})
-    public List<String> getMultilabelValues(@ApiParam(value = "Company to which the model belong", required = true, example = "UPC")
+    public List<String> getMultilabelValues(@ApiParam(value = "The company to which the model belongs", required = true, example = "UPC")
                                                 @RequestParam("company") String enterpriseName,
                                             @ApiParam(value = "Property of the classifier", required = true, example = "requirement")
                                             @PathVariable("property") String property) {
@@ -74,7 +74,7 @@ public class MultilabelClassificationController {
 
     @DeleteMapping("/model")
     @ApiOperation(value = "Delete multiple models",
-            notes = "Given a **company** and a **property**, delete the associated stored models for the given *property* as follows:\n\n" +
+            notes = "Given a **company** and a **property**, deletes the associated stored models for the given *property* as follows:\n\n" +
                     "- If *modelList* is neither null nor empty, a model is deleted per each value of *property* in *modelList*\n\n" +
                     "- Else if *modelList* is null or empty, all models of the given *property* are deleted")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = String.class)})
@@ -101,7 +101,7 @@ public class MultilabelClassificationController {
                     "the *property* field.")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = String.class)})
     public void update(@ApiParam(value = "Request with the requirements to train", required = true) @RequestBody MultiRequirementList request,
-                       @ApiParam(value = "Company to which the model belong", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
+                       @ApiParam(value = "The company to which the model belongs", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
                        @ApiParam(value = "Property of the classifier", required = true, example = "requirement") @RequestParam("property") String property,
                        @ApiParam(value = "List of property values to update models (if empty, all values are generated)")
                                    @RequestParam(value = "Model list", required = false) List<String> modelList) throws Exception {
@@ -118,7 +118,7 @@ public class MultilabelClassificationController {
                     " the domain model. The result is a list of recommendations based on the classification results.")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = RecommendationList.class)})
     public RecommendationList classify(@ApiParam(value = "Request with the requirements to train", required = true) @RequestBody ClassifyRequirementList request,
-                                       @ApiParam(value = "Company to which the model belong", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
+                                       @ApiParam(value = "The company to which the model belongs", required = true, example = "UPC") @RequestParam("company") String enterpriseName,
                                        @ApiParam(value = "Property of the classifier", required = true, example = "requirement") @RequestParam("property") String property,
                                        @ApiParam(value = "List of property values to generate models (if empty, all values are generated)")
                                            @RequestParam(value = "Model list", required = false) List<String> modelList,
@@ -137,9 +137,9 @@ public class MultilabelClassificationController {
 
     @RequestMapping(value = "train&test", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "Train and test by domain",
-            notes = "Returns the result of k cross-validation using the requirements recieved in the request and the model" +
+            notes = "Returns the result of a k cross-validation using the requirements received in the request and the model" +
                     " of the implicit *company* and *property* (send as parameters in the request). Splits the requirements in k groups, trains a classifier for each group with " +
-                    "all of the requirements recieved except the ones in the group and tests it with the requirements in the group.\n" +
+                    "all of the requirements received except the ones in the group and tests it with the requirements in the group.\n" +
                     "Returns the average of several statistics like the accuracy of the model\n")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = DomainStats.class)})
     public DomainStats trainAndTest(@ApiParam(value = "Request with the requirements to test", required = true) @RequestBody MultiRequirementList request,

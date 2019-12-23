@@ -26,7 +26,7 @@ public class BinaryClassificationController {
                     " property and company.\n\n" +
                     "This method is executed in an asynchronous way. As a response you will get an object with a single attribute " +
                     "id (check swagger response below) when the training has started. Once the execution is finished, you will " +
-                    "get a response to the endpoint set at the *url* parameter. The format of the response is as follows: \n\n" +
+                    "get a response to the endpoint set in the *url* parameter. The format of the response is as follows: \n\n" +
                     "{\n" +
                     "\t\"message\":\"Response message\",\n" +
                     "\t\"id\": \"1562315038067_409\",\n" +
@@ -93,7 +93,7 @@ public class BinaryClassificationController {
 
     @RequestMapping(value = "train&test", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "Train and test",
-            notes = "Returns the result of k cross-validation using the requirements recieved in the request. Splits the requirements in k groups, trains a classifier for each group with all of the requirements recieved except the ones in the group and tests it with the requirements in the group.\n" +
+            notes = "Returns the result of a k cross-validation using the requirements received in the request. Splits the requirements in k groups, trains a classifier for each group with all of the requirements received except the ones in the group and tests it with the requirements in the group.\n" +
                     "Returns the average of several statistics like the accuracy of the model\n")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "OK", response = Stats.class)})
     public Stats trainAndTest(@ApiParam(value = "Request with the requirements to test", required = true) @RequestBody RequirementList request,
